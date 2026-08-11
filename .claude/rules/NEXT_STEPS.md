@@ -22,6 +22,14 @@
   feature, out of scope now.
 - Routes: `POST /v1/runs` (start a run), `GET /v1/runs/:id` (status/partial
   results), `GET /v1/runs/:id/results` (full results). No `/v1/scenarios`.
+- **All authentication happens in the Node.js gateway. This service has none,
+  by design.** Node validates the user's JWT, resolves them to a `client_id`,
+  and passes that `client_id` down. This service treats it as a trusted,
+  already-authenticated identifier and only enforces *ownership* with it
+  (a client never reads another client's runs or strategy library). It never
+  sees a JWT, a password, or a user record. This is safe exactly as long as
+  the service stays internal-network-only and unreachable from the internet —
+  that network boundary *is* the authentication.
 
 ## Progress so far
 
@@ -41,7 +49,6 @@
 ## Known gaps in what works today
 
 - **A restart still unloads every target model.** Identity now survives (`target_id` is `uuid5(client_id + target_key)`, clients auto-provision, and `GET /v1/libraries` reads libraries with no in-memory state), but GPU weights cannot persist, so a run needs `POST /v1/targets` with the same config first — which returns the same `target_id` as before.
-- **`client_id` is unauthenticated** — a query parameter, not a credential. Ownership is enforced, identity is not. Acceptable only while the service stays internal-network-only (open item 4).
 - Targets accumulate forever in the `targets` dict; nothing evicts them (open item 2).
 - A run reports `queued` while it waits on `gpu_lock` and loads the attacker/scorer (30-60s of looking idle while working). A `loading` status would separate the two.
 
@@ -74,7 +81,8 @@ The concrete driver for the PostgreSQL learning arc.
 ## Open design work (deferred)
 1. **Secrets handling** for `api_key_env` — how the client's target API key actually reaches the service process's env (per-request secret injection vs. pre-provisioned env vars), and making sure it's never logged or echoed back.
 2. **Target model lifecycle** — `ModelRegistry` handles the fixed models; targets are still never evicted. Size and count are client-controlled and unbounded, so this needs a VRAM budget or a TTL before it's network-reachable.
-3. **Service auth** — who's allowed to call this API at all (separate concern from the target's own `api_key_env`), and how `client_id` is authenticated/scoped so one client can never read another's strategy library.
+3. ~~**Service auth**~~ — *resolved by architecture decision, see "Decided since"*. Auth lives entirely in Node.js; this service authenticates nobody. What replaces it is a **deployment requirement, not code**: the service must never be exposed outside the internal network (no public ingress, no port-forward in production). If that ever changes, service auth comes back as an open item.
+4. **Network isolation enforcement** — the flip side of item 3. Bind address, firewall/security-group rules, and container network policy need to be pinned down in the deployment config so "internal-only" is enforced rather than assumed.
 5. **`server/server_llm.py`** — currently a standalone scorer-only FastAPI app with a hardcoded model. Decide whether it's folded into the new main service or retired.
 6. **Dockerfile / deployment** — GPU base image, `HF_HOME` volume mount, and consolidating the duplicate `requirements.txt` / `src/core/requirements.txt` before containerizing.
 7. **Data handling policy** — this system generates harmful/jailbreak content for red-teaming; logging and retention of attack prompts/responses needs an explicit policy before this is network-reachable.

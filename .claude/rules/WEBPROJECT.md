@@ -108,6 +108,14 @@ Node.js's world (no auth, no run ownership, no calling Node's database) —
 but **stateful with respect to its own strategy library**, which it owns,
 persists, and evolves per client/target (see below).
 
+**Authentication is entirely Node.js's job.** This service implements no
+login, no tokens, no user records. Node validates the JWT, resolves the user
+to a `client_id`, and forwards that `client_id` in the payload; Python trusts
+it as already-authenticated and uses it only for **ownership** checks — one
+client can never touch another's runs or strategy library. The guarantee that
+nobody forges a `client_id` is the network boundary (Python is internal-only),
+not a credential check in Python.
+
 #### Routes
 
 ```
@@ -216,7 +224,7 @@ SSE is used instead of WebSockets because communication is unidirectional (serve
 
 ## Security considerations
 
-- The Python service is **not publicly exposed** — only Node.js faces the internet. Python is internal-network only.
+- The Python service is **not publicly exposed** — only Node.js faces the internet. Python is internal-network only. This is load-bearing, not defense in depth: since all auth terminates in Node and Python trusts the `client_id` it receives, anyone who can reach Python directly can impersonate any client. Public ingress to the Python service is a security incident, not a misconfiguration.
 - Target LLM API keys are **encrypted at rest** and never logged.
 - The per-client/per-target strategy library (discovered jailbreak strategies, attack logs) is treated as sensitive data with its own access controls — it is effectively a jailbreak knowledge base, scoped so one client can never read another's.
 - Python outputs are sanitized by Node.js before reaching the React client to prevent XSS from adversarial model responses rendered in the browser.
