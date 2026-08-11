@@ -208,6 +208,7 @@ class DbHealthResponse(BaseModel):
     pgvector_version: Optional[str] = None
     libraries: int
     strategies: int
+    runs: int
 
 
 class HealthResponse(BaseModel):

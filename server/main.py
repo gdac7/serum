@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional
 import uuid
 import uvicorn
 from contextlib import asynccontextmanager
+import pynvml
 from server.config import (
     CreateUserRequest, CreateUserResponse,
     TargetConfigRequest, TargetCreateResponse, TargetHealthResponse,
@@ -21,33 +22,23 @@ from server.config import (
 from src.core.target_factory import build_target_model
 from src.core.auto_dan_turbo import AutoDANTurbo
 from src.harmbench_eval.get_harmbench_values import get_results, release_classifier
-import pynvml
 from server.db.pool import create_pool
 from server.db.strategy_repository import StrategyRepository
+from server.db.run_repository import RunRepository
 from server.model_registry import ModelRegistry
 from server.target_key import derive_target_id, derive_target_key
 
-runs: Dict[str, dict] = {}
+# Targets stay in memory: the model instance is a live GPU handle that cannot
+# be persisted, so a restart drops them and the client re-POSTs to rebuild.
 targets: Dict[str, dict] = {}
-users: Dict[str, dict] = {}
 
 # One GPU, one run at a time: concurrent runs would release each other's models.
 gpu_lock = threading.Lock()
 
 
-def _ensure_user(client_id: str) -> Dict[str, Any]:
-    """Client identity belongs to the caller, not to this service.
-
-    `client_id` scopes the strategy library and nothing else, so requiring a
-    prior registration only invented a fact that dies with the process. First
-    use provisions it, mirroring get_or_create_library.
-    """
-    return users.setdefault(client_id, {"targets": {}, "runs": {}})
-
-
 def _get_owned_target_or_404(client_id: str, target_id: str) -> Dict[str, Any]:
-    user = _ensure_user(client_id)
-    if target_id not in user["targets"]:
+    target = targets.get(target_id)
+    if target is None or target.get("client_id") != client_id:
         raise HTTPException(
             status_code=404,
             detail=(
@@ -57,14 +48,15 @@ def _get_owned_target_or_404(client_id: str, target_id: str) -> Dict[str, Any]:
                 "derived from the config, so you get the same target_id back."
             ),
         )
-    return targets[target_id]
+    return target
 
 
 def _get_owned_run_or_404(client_id: str, run_id: str) -> Dict[str, Any]:
-    user = _ensure_user(client_id)
-    if run_id not in user["runs"]:
+    with app.state.db_pool.connection() as conn:
+        record = RunRepository(conn).get_run(client_id, run_id)
+    if record is None:
         raise HTTPException(status_code=404, detail=f"run '{run_id}' not found for this client")
-    return runs[run_id]
+    return record
 
 
 @asynccontextmanager
@@ -80,6 +72,12 @@ async def lifespan(app: FastAPI):
         "scorer": config["models"]["scorer"],
     })
     app.state.db_pool = create_pool()
+    with app.state.db_pool.connection() as conn:
+        interrupted = RunRepository(conn).fail_interrupted(
+            "service restarted while run was in progress; resubmit the run"
+        )
+    if interrupted:
+        print(f"marked {interrupted} interrupted run(s) as failed")
     yield
     app.state.registry.release_all()
     app.state.db_pool.close()
@@ -91,9 +89,6 @@ app = FastAPI(title="autodan-turbo-service", lifespan=lifespan)
 def _make_strategy_sink(run_id: str, library_id: str):
     """Persist each validated strategy on its own short-lived connection.
 
-    Discoveries are minutes apart, so a checkout per strategy is far cheaper
-    than holding one connection open for the whole run.
-
     A failed write is recorded on the run before being re-raised: the phase
     survives it, but the run must never look clean while dropping strategies.
     """
@@ -104,17 +99,22 @@ def _make_strategy_sink(run_id: str, library_id: str):
             with pool.connection() as conn:
                 StrategyRepository(conn).save_strategy(library_id, strategy)
         except Exception as e:
-            runs[run_id].setdefault("persist_errors", []).append(
-                f"{strategy.name}: {type(e).__name__}: {e}"
-            )
+            with pool.connection() as conn:
+                RunRepository(conn).append_persist_error(
+                    run_id, f"{strategy.name}: {type(e).__name__}: {e}"
+                )
             raise
 
     return sink
 
 
+def _set_status(run_id: str, status: str) -> None:
+    with app.state.db_pool.connection() as conn:
+        RunRepository(conn).set_status(run_id, status)
+
+
 def run_autodan_task(run_id: str, target_id: str, dataset: List[str], phases: List[str], iteration_overrides: Dict[str, Any], library_id: str, fresh_library: bool = False):
     with gpu_lock:
-        # Stays "queued" until the first phase sets its own status.
         registry = app.state.registry
         autodan = shared_model = None
         try:
@@ -134,10 +134,9 @@ def run_autodan_task(run_id: str, target_id: str, dataset: List[str], phases: Li
 
             with app.state.db_pool.connection() as conn:
                 repo = StrategyRepository(conn)
-                runs[run_id]["strategies_at_start"] = repo.count_strategies(library_id)
-                runs[run_id]["strategies_loaded"] = (
-                    0 if fresh_library else repo.hydrate(library_id, autodan.strategy_library)
-                )
+                at_start = repo.count_strategies(library_id)
+                loaded = 0 if fresh_library else repo.hydrate(library_id, autodan.strategy_library)
+                RunRepository(conn).set_progress(run_id, at_start, loaded)
 
             overrides = dict(iteration_overrides or {})
             num_steps = overrides.pop("num_steps", 4)
@@ -147,21 +146,21 @@ def run_autodan_task(run_id: str, target_id: str, dataset: List[str], phases: Li
             generations = None
             for phase in phases:
                 if phase == "warmup":
-                    runs[run_id]["status"] = "warmup"
+                    _set_status(run_id, "warmup")
                     phase_summaries[phase] = autodan.warmup_exploration(
                         malicious_request=dataset,
                         save_dir=save_dir,
                         **overrides,
                     )
                 elif phase == "lifelong":
-                    runs[run_id]["status"] = "lifelong"
+                    _set_status(run_id, "lifelong")
                     phase_summaries[phase] = autodan.lifelong_learning(
                         malicious_request=dataset,
                         save_dir=save_dir,
                         **overrides,
                     )
                 elif phase == "evaluate":
-                    runs[run_id]["status"] = "evaluating"
+                    _set_status(run_id, "evaluating")
                     generations = autodan.evaluate(
                         behavior=dataset,
                         num_steps=num_steps,
@@ -175,7 +174,7 @@ def run_autodan_task(run_id: str, target_id: str, dataset: List[str], phases: Li
 
             metrics = None
             if generations is not None:
-                runs[run_id]["status"] = "scoring"
+                _set_status(run_id, "scoring")
                 try:
                     metrics = get_results(
                         generations, f"{save_dir}/harmbench_metrics.json"
@@ -183,15 +182,15 @@ def run_autodan_task(run_id: str, target_id: str, dataset: List[str], phases: Li
                 finally:
                     release_classifier()
 
-            runs[run_id]["result"] = {
-                "phases": phase_summaries,
-                "generations": generations,
-                "metrics": metrics,
-            }
-            runs[run_id]["status"] = "completed"
+            with app.state.db_pool.connection() as conn:
+                RunRepository(conn).complete(run_id, {
+                    "phases": phase_summaries,
+                    "generations": generations,
+                    "metrics": metrics,
+                })
         except Exception as e:
-            runs[run_id]["status"] = "failed"
-            runs[run_id]["error"] = f"{type(e).__name__}: {e}"
+            with app.state.db_pool.connection() as conn:
+                RunRepository(conn).fail(run_id, f"{type(e).__name__}: {e}")
         finally:
             # Rebind before releasing: a live local reference keeps the weights allocated.
             autodan = shared_model = None
@@ -220,7 +219,6 @@ def create_client(request: CreateUserRequest):
     strategy library as brand new -- and a caller using that to check whether
     an id was free could hand one tenant another tenant's library.
     """
-    _ensure_user(request.client_id)
     with app.state.db_pool.connection() as conn:
         libraries = StrategyRepository(conn).list_libraries(request.client_id)
     return {
@@ -232,8 +230,6 @@ def create_client(request: CreateUserRequest):
 
 @app.post("/v1/targets", response_model=TargetCreateResponse, status_code=201)
 async def create_target(request: TargetConfigRequest, background_tasks: BackgroundTasks):
-    user = _ensure_user(request.client_id)
-
     # Same client + same config always resolves to the same handle, so this
     # call re-attaches instead of building a second copy of loaded weights.
     target_id = derive_target_id(request.client_id, request.target)
@@ -241,6 +237,7 @@ async def create_target(request: TargetConfigRequest, background_tasks: Backgrou
     if existing is None or existing.get("status") == "failed":
         targets[target_id] = {
             "status": "queued",
+            "client_id": request.client_id,
             "target_key": derive_target_key(request.target),
         }
         background_tasks.add_task(
@@ -248,7 +245,6 @@ async def create_target(request: TargetConfigRequest, background_tasks: Backgrou
             target_id=target_id,
             target_cfg=request.target.model_dump(),
         )
-    user["targets"][target_id] = targets[target_id]
     return {"client_id": request.client_id, "target_id": target_id, "status": targets[target_id]["status"]}
 
 
@@ -257,34 +253,30 @@ async def create_target(request: TargetConfigRequest, background_tasks: Backgrou
 @app.post("/v1/runs", response_model=AutoDANRunCreateResponse, status_code=201)
 def create_autodan_run(request: AutoDANRunRequest, background_tasks: BackgroundTasks):
     target = _get_owned_target_or_404(request.client_id, request.target_id)
+    run_id = str(uuid.uuid4())
 
     with app.state.db_pool.connection() as conn:
         repo = StrategyRepository(conn)
         library_id = repo.get_or_create_library(request.client_id, target["target_key"])
         stored_strategies = repo.count_strategies(library_id)
 
-    # `evaluate` only consumes the library; warmup/lifelong are what produce it.
-    # Without either, an empty library means evaluating against nothing learned.
-    if not any(phase in ("warmup", "lifelong") for phase in request.phases):
-        if request.fresh_library:
-            raise HTTPException(
-                status_code=409,
-                detail="'fresh_library' with no 'warmup' or 'lifelong' phase would evaluate against an empty strategy library",
-            )
-        if stored_strategies == 0:
-            raise HTTPException(
-                status_code=409,
-                detail="no stored strategy library for this client and target: run 'warmup' and/or 'lifelong' first",
-            )
+        # `evaluate` only consumes the library; warmup/lifelong are what produce
+        # it. Without either, an empty library means evaluating against nothing.
+        if not any(phase in ("warmup", "lifelong") for phase in request.phases):
+            if request.fresh_library:
+                raise HTTPException(
+                    status_code=409,
+                    detail="'fresh_library' with no 'warmup' or 'lifelong' phase would evaluate against an empty strategy library",
+                )
+            if stored_strategies == 0:
+                raise HTTPException(
+                    status_code=409,
+                    detail="no stored strategy library for this client and target: run 'warmup' and/or 'lifelong' first",
+                )
 
-    run_id = str(uuid.uuid4())
-    runs[run_id] = {
-        "status": "queued",
-        "client_id": request.client_id,
-        "target_id": request.target_id,
-        "library_id": library_id,
-    }
-    users[request.client_id]["runs"][run_id] = runs[run_id]
+        RunRepository(conn).create_run(
+            run_id, request.client_id, request.target_id, library_id, request.phases
+        )
 
     background_tasks.add_task(
         run_autodan_task,
@@ -300,7 +292,7 @@ def create_autodan_run(request: AutoDANRunRequest, background_tasks: BackgroundT
         "client_id": request.client_id,
         "run_id": run_id,
         "target_id": request.target_id,
-        "status": runs[run_id]["status"],
+        "status": "queued",
     }
 
 
@@ -590,10 +582,13 @@ def get_db_health():
             libraries = cur.fetchone()[0]
             cur.execute("SELECT count(*) FROM strategies")
             strategies = cur.fetchone()[0]
+            cur.execute("SELECT count(*) FROM runs")
+            runs = cur.fetchone()[0]
     return {
         "pgvector_version": row[0] if row else None,
         "libraries": libraries,
         "strategies": strategies,
+        "runs": runs,
     }
 
 
