@@ -77,17 +77,23 @@ All gateway work is on the **`nodejs-gateway`** git branch, not `main`.
 
 ### Progress
 - **Slice 0 — scaffold** *(done)*: Express + TS app in `gateway/`, zod-validated
-  env, pino logger, `python.client` (GET /v1/health), `GET /health` passthrough.
+  env, pino logger, `redteam.client` (GET /v1/health), `GET /health` passthrough.
 - **Slice 1 — auth** *(done)*: gateway Postgres (`pg` pool, `users` schema,
   `npm run migrate`), `POST /auth/register` (bcrypt), `POST /auth/login` (JWT),
   `requireAuth` middleware, protected `GET /me`; boot-time DB ping; zod validation
   + shared `HttpError` handler.
+- **Slice 2 — create run** *(done)*: `runs` mirror table + `run.repository`,
+  `run.service` (insert `queued`, enqueue), `POST /runs` → 202 + node_run_id,
+  minimal `GET /runs/:id` (coarse status read-back). BullMQ queue (`bullmq` +
+  `ioredis`, `REDIS_URL`) + split worker process (`src/worker/`, `npm run worker`):
+  lazy create_client → register local target → poll target_health → `POST /v1/runs`
+  → persist python_run_id → poll to terminal with status mapping. Idempotency guard
+  on `python_run_id`; 409 on run start treated as permanent. Request body exposes
+  `model_name/phases/dataset/fresh_library/load_4_bits` (no `iteration_overrides`).
+  `redteam.client` (renamed from `python.client`) carries the run endpoints +
+  `RedTeamServiceError` (status-aware). `kind:"local"` only.
 
 ### Todo (remaining slices)
-2. **Create run** — `runs` mirror table, `run.service` (validate phases, insert
-   `queued`, enqueue), `POST /runs` → 202 + node_run_id, BullMQ queue + worker
-   (lazy create_client → register target → `POST /v1/runs` → persist python_run_id
-   → poll to terminal), status mapping. `kind:"local"` only.
 3. **Read + shape + sanitize** — `GET /runs`, `/runs/:id`, `/results`, `/metrics`;
    shape Python payloads, XSS-sanitize generations, preserve 409/404.
 4. **SSE live progress** — `sse.hub` (Redis sub), worker publishes deltas,
@@ -99,8 +105,12 @@ All gateway work is on the **`nodejs-gateway`** git branch, not `main`.
 
 ### Run / test
 - Gateway DB: `bash gateway/setup_db.sh` (docker `postgres:17` on 5433).
-- `cd gateway && npm run migrate && npm run dev`.
+- Redis: `bash gateway/setup_redis.sh` (docker `redis:7` on 6379).
+- `cd gateway && npm run migrate`, then `npm run dev` (web) + `npm run worker` (worker).
 - Slice 1 check: register → login → `GET /me` with the token (200) → without it (401).
+- Slice 2 check: `POST /runs` with the token → 202 + node_run_id; `GET /runs/:id`
+  shows status advancing `queued → running → completed|failed` as the worker drives
+  it (needs the red-team service reachable for a real run).
 
 ---
 
