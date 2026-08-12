@@ -112,6 +112,15 @@ All gateway work is on the **`nodejs-gateway`** git branch, not `main`.
   shows status advancing `queued → running → completed|failed` as the worker drives
   it (needs the red-team service reachable for a real run).
 
+### Throwaway test frontend (`frontend/`)
+Minimal Vite + React UI to exercise the gateway by hand — **not** the real
+frontend (the feature-based SPA in WEBPROJECT.md is still to build). Talks to the
+gateway through a Vite dev-server proxy (`vite.config.ts` forwards `/auth`, `/runs`,
+`/me`, `/health` → `:3000`), so no CORS change to the gateway is needed. Covers
+register/login (token in localStorage), create-run form, and run cards that poll
+`GET /runs/:id` to a terminal status. Run: `cd frontend && npm install && npm run dev`
+(with the gateway web + worker up), open the printed localhost URL.
+
 ---
 
 ## Open design work (deferred)
