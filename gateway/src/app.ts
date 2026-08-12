@@ -3,6 +3,7 @@ import pinoHttp from "pino-http";
 import { logger } from "./infra/logger";
 import { healthRouter } from "./routes/health.routes";
 import { authRouter } from "./routes/auth.routes";
+import { runsRouter } from "./routes/runs.routes";
 import { errorHandler } from "./middleware/error.middleware";
 
 export function createApp() {
@@ -11,6 +12,7 @@ export function createApp() {
   app.use(express.json());
   app.use(healthRouter);
   app.use(authRouter);
+  app.use(runsRouter);
   app.use(errorHandler);
   return app;
 }
