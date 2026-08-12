@@ -54,6 +54,11 @@
 
 ## Current task: PostgreSQL persistence
 
+**Status (2026-08-11):** slices 1-3 done. Only slice 4 (prompt log store)
+remains, and it's deferred — the Python service is at a stable stopping point
+and the next task is the Node.js gateway (see below). Slice 4 is a fast-follow,
+not a blocker: the API contract Node consumes is complete and durable without it.
+
 The concrete driver for the PostgreSQL learning arc.
 
 **Decisions (2026-08-09), binding:**
@@ -81,6 +86,27 @@ The concrete driver for the PostgreSQL learning arc.
    restart drops it and the client re-POSTs to rebuild — persisting the metadata
    alone would let a run start against a target whose weights are gone.
 4. **Generations and scores** — WEBPROJECT.md's "prompt log store", access-controlled separately from general app data.
+
+## Next task: Node.js gateway
+
+The Python service is the stable base; the gateway is built on top of it. Its
+architecture is in WEBPROJECT.md (layered: route → service → repository →
+infra). Three things about *this* service that the gateway must respect:
+
+- **Auth terminates in Node.** Python does none. Node validates the JWT,
+  resolves the user to a `client_id`, and forwards it in every payload; Python
+  trusts it and only enforces ownership. The whole model rests on Python staying
+  internal-network-only.
+- **Node must (re-)register the target before a run.** Target models live in GPU
+  memory and don't survive a Python restart. `POST /v1/targets` is idempotent —
+  same config → same `target_id` — so the run-manager should re-register rather
+  than assume the target is live.
+- **Map the status vocabulary.** Python reports `queued → warmup → lifelong →
+  evaluating → scoring → completed | failed`; Node collapses these onto its
+  coarser `queued → running → completed → failed` state machine.
+
+**Before running the service:** apply the schema (`python -m server.db.migrate`)
+— the slice-3 `runs` table won't exist otherwise.
 
 ## Open design work (deferred)
 1. **Secrets handling** for `api_key_env` — how the client's target API key actually reaches the service process's env (per-request secret injection vs. pre-provisioned env vars), and making sure it's never logged or echoed back.
