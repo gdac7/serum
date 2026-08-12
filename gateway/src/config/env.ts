@@ -8,6 +8,7 @@ const schema = z.object({
     .enum(["fatal", "error", "warn", "info", "debug", "trace"])
     .default("info"),
   PYTHON_SERVICE_URL: z.string().url().default("http://localhost:8080"),
+  REDIS_URL: z.string().url().default("redis://localhost:6379"),
   GATEWAY_DATABASE_URL: z.string().min(1, "GATEWAY_DATABASE_URL is required"),
   JWT_SECRET: z.string().min(16, "JWT_SECRET must be at least 16 characters"),
   JWT_EXPIRES_SECONDS: z.coerce.number().default(3600),
