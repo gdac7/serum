@@ -1,6 +1,6 @@
 import { env } from "../config/env";
 
-export interface PythonHealth {
+export interface RedTeamHealth {
   attacker_name: string;
   summarizer_name: string;
   scorer_name: string;
@@ -9,7 +9,7 @@ export interface PythonHealth {
 
 export type TargetStatus = "queued" | "loading" | "loaded" | "failed";
 
-export type PythonRunStatus =
+export type RedTeamRunStatus =
   | "queued"
   | "warmup"
   | "lifelong"
@@ -56,28 +56,28 @@ export interface RunCreateResponse {
   client_id: string;
   run_id: string;
   target_id: string;
-  status: PythonRunStatus;
+  status: RedTeamRunStatus;
 }
 
 export interface RunStatusResponse {
   client_id: string;
   run_id: string;
   target_id: string;
-  status: PythonRunStatus;
+  status: RedTeamRunStatus;
   error: string | null;
   persist_errors: string[];
 }
 
 // Carries the HTTP status so callers can tell a permanent 4xx (bad request,
 // ownership) from a transient failure worth retrying.
-export class PythonServiceError extends Error {
+export class RedTeamServiceError extends Error {
   constructor(
     public status: number,
     public path: string,
     public body: string,
   ) {
-    super(`python ${path} responded ${status}: ${body}`);
-    this.name = "PythonServiceError";
+    super(`red-team service ${path} responded ${status}: ${body}`);
+    this.name = "RedTeamServiceError";
   }
 }
 
@@ -92,13 +92,13 @@ async function request<T>(
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
-    throw new PythonServiceError(res.status, path, await res.text());
+    throw new RedTeamServiceError(res.status, path, await res.text());
   }
   return (await res.json()) as T;
 }
 
-export const pythonClient = {
-  health: () => request<PythonHealth>("GET", "/v1/health"),
+export const redTeamClient = {
+  health: () => request<RedTeamHealth>("GET", "/v1/health"),
 
   createClient: (clientId: string) =>
     request<CreateClientResponse>("POST", "/v1/create_client", {

@@ -1,13 +1,13 @@
 import { Router } from "express";
-import { pythonClient } from "../infra/python.client";
+import { redTeamClient } from "../infra/redteam.client";
 
 export const healthRouter = Router();
 
 healthRouter.get("/health", async (_req, res) => {
   try {
-    const python = await pythonClient.health();
-    res.json({ ok: true, python: { reachable: true, ...python } });
+    const redteam = await redTeamClient.health();
+    res.json({ ok: true, redteam: { reachable: true, ...redteam } });
   } catch {
-    res.json({ ok: true, python: { reachable: false } });
+    res.json({ ok: true, redteam: { reachable: false } });
   }
 });
