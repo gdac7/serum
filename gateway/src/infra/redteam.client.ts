@@ -196,4 +196,23 @@ export const redTeamClient = {
       "GET",
       `/v1/runs/${runId}/progress?client_id=${clientId}`,
     ),
+
+  // Returns the raw streaming response so the caller can forward the SSE body
+  // frame-by-frame; unlike `request`, it must not buffer the whole reply.
+  chatStream: async (
+    clientId: string,
+    targetId: string,
+    body: { message: string; system_prompt?: string; max_tokens?: number; temperature?: number },
+  ): Promise<Response> => {
+    const path = `/v1/targets/${targetId}/chat`;
+    const res = await fetch(`${env.PYTHON_SERVICE_URL}${path}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "text/event-stream" },
+      body: JSON.stringify({ client_id: clientId, ...body }),
+    });
+    if (!res.ok) {
+      throw new RedTeamServiceError(res.status, path, await res.text());
+    }
+    return res;
+  },
 };
