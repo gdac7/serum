@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../shared/auth/AuthContext";
-import { runsApi, streamChat } from "../../shared/api/runs";
+import { targetsApi, type TargetSummary } from "../../shared/api/targets";
+import { streamChat } from "../../shared/api/chat";
 import { ApiError } from "../../shared/api/client";
 import { IconPlus, IconSend } from "../../shared/components/icons";
-import type { RunSummary } from "../../shared/types/run";
+import { RegisterTargetDialog } from "./RegisterTargetDialog";
 
 interface ChatMessage {
   sender: "You" | "Target" | "System";
@@ -13,65 +13,85 @@ interface ChatMessage {
   isError?: boolean;
 }
 
+const POLL_MS = 3000;
+
 export function ChatPage() {
   const { token } = useAuth();
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [runs, setRuns] = useState<RunSummary[] | null>(null);
+  const [targets, setTargets] = useState<TargetSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeId, setActiveId] = useState<string | null>(searchParams.get("run"));
-  const [messagesByRun, setMessagesByRun] = useState<Record<string, ChatMessage[]>>({});
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [registerOpen, setRegisterOpen] = useState(false);
+  const [messagesByTarget, setMessagesByTarget] = useState<Record<string, ChatMessage[]>>({});
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  useEffect(() => {
+  function loadTargets() {
     if (!token) return;
-    let cancelled = false;
-    runsApi
+    targetsApi
       .list(token)
       .then((data) => {
-        if (cancelled) return;
-        setRuns(data);
-        setActiveId((prev) => prev ?? data[0]?.node_run_id ?? null);
+        setTargets(data);
+        setActiveId((prev) => prev ?? data[0]?.target_id ?? null);
       })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : "failed to load runs");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
+      .catch((err) => setError(err instanceof ApiError ? err.message : "failed to load targets"));
+  }
+
+  useEffect(loadTargets, [token]);
+
+  // Poll any target still loading — no SSE for target status, only for run
+  // progress — so its sidebar subtitle and chat readiness stay current.
+  useEffect(() => {
+    if (!token || !targets) return;
+    const pending = targets.filter((t) => t.status === "queued" || t.status === "loading");
+    if (pending.length === 0) return;
+
+    const timer = setInterval(() => {
+      Promise.all(pending.map((t) => targetsApi.get(token, t.target_id)))
+        .then((fresh) => {
+          setTargets((prev) =>
+            prev?.map((t) => fresh.find((f) => f.target_id === t.target_id) ?? t) ?? prev,
+          );
+        })
+        .catch(() => {});
+    }, POLL_MS);
+    return () => clearInterval(timer);
+  }, [token, targets]);
 
   useEffect(() => {
     return () => abortRef.current?.abort();
   }, []);
 
-  const activeRun = useMemo(
-    () => runs?.find((r) => r.node_run_id === activeId) ?? null,
-    [runs, activeId],
+  const activeTarget = useMemo(
+    () => targets?.find((t) => t.target_id === activeId) ?? null,
+    [targets, activeId],
   );
-  const activeMessages = activeId ? messagesByRun[activeId] ?? [] : [];
+  const activeMessages = activeId ? messagesByTarget[activeId] ?? [] : [];
 
-  function selectRun(id: string) {
+  function selectTarget(id: string) {
     abortRef.current?.abort();
     setSending(false);
     setActiveId(id);
-    setSearchParams({ run: id }, { replace: true });
   }
 
-  function appendMessage(runId: string, msg: ChatMessage) {
-    setMessagesByRun((prev) => ({ ...prev, [runId]: [...(prev[runId] ?? []), msg] }));
+  function onRegistered(targetId: string) {
+    setRegisterOpen(false);
+    loadTargets();
+    setActiveId(targetId);
   }
 
-  function updateLastMessage(runId: string, updater: (msg: ChatMessage) => ChatMessage) {
-    setMessagesByRun((prev) => {
-      const list = prev[runId] ?? [];
+  function appendMessage(targetId: string, msg: ChatMessage) {
+    setMessagesByTarget((prev) => ({ ...prev, [targetId]: [...(prev[targetId] ?? []), msg] }));
+  }
+
+  function updateLastMessage(targetId: string, updater: (msg: ChatMessage) => ChatMessage) {
+    setMessagesByTarget((prev) => {
+      const list = prev[targetId] ?? [];
       if (list.length === 0) return prev;
       const next = [...list];
       next[next.length - 1] = updater(next[next.length - 1]);
-      return { ...prev, [runId]: next };
+      return { ...prev, [targetId]: next };
     });
   }
 
@@ -90,7 +110,7 @@ export function ChatPage() {
     try {
       await streamChat(
         token,
-        activeId,
+        `/targets/${activeId}/chat`,
         { message: text },
         (frame) => {
           if (frame.type === "status" && frame.text) {
@@ -139,27 +159,27 @@ export function ChatPage() {
         <button
           type="button"
           className="btn btn-secondary btn-block"
-          onClick={() => navigate("/security-testing")}
+          onClick={() => setRegisterOpen(true)}
         >
           New target
           <IconPlus />
         </button>
         <div style={{ display: "flex", flexDirection: "column", marginTop: "var(--space-3)" }}>
-          {runs?.map((r) => (
+          {targets?.map((t) => (
             <button
-              key={r.node_run_id}
+              key={t.target_id}
               type="button"
-              className={`list-item${r.node_run_id === activeId ? " is-active" : ""}`}
-              onClick={() => selectRun(r.node_run_id)}
+              className={`list-item${t.target_id === activeId ? " is-active" : ""}`}
+              onClick={() => selectTarget(t.target_id)}
             >
-              <div className="list-item-title">{r.model_name}</div>
+              <div className="list-item-title">{t.model_name}</div>
               <div className="list-item-subtitle">
-                {r.target_kind} · {r.status}
+                {t.kind} · {t.status}
               </div>
             </button>
           ))}
-          {runs && runs.length === 0 && (
-            <p className="empty-state">No targets yet. Start one to begin chatting.</p>
+          {targets && targets.length === 0 && (
+            <p className="empty-state">No targets yet. Register one to begin chatting.</p>
           )}
         </div>
       </aside>
@@ -178,7 +198,7 @@ export function ChatPage() {
             Testing model
           </label>
           <span style={{ fontSize: 14 }}>
-            {activeRun ? `${activeRun.model_name} (${activeRun.target_kind})` : "—"}
+            {activeTarget ? `${activeTarget.model_name} (${activeTarget.kind})` : "—"}
           </span>
         </div>
 
@@ -210,7 +230,7 @@ export function ChatPage() {
               Send a message to test this model. Loading it may take a minute the first time.
             </p>
           )}
-          {!activeId && <p style={{ opacity: 0.55 }}>Select or start a target to chat.</p>}
+          {!activeId && <p style={{ opacity: 0.55 }}>Register a target to start chatting.</p>}
         </div>
 
         <div
@@ -243,6 +263,10 @@ export function ChatPage() {
           </button>
         </div>
       </main>
+
+      {registerOpen && (
+        <RegisterTargetDialog onClose={() => setRegisterOpen(false)} onRegistered={onRegistered} />
+      )}
     </div>
   );
 }

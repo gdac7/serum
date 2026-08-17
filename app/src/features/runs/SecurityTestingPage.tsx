@@ -267,8 +267,8 @@ export function SecurityTestingPage() {
 
             {createdRunId && (
               <p style={{ fontSize: 13, opacity: 0.85 }}>
-                Run queued. See <Link to="/results">Results</Link> for status, or{" "}
-                <Link to={`/chat?run=${createdRunId}`}>chat with this target</Link>.
+                Run queued. See <Link to="/results">Results</Link> for status. To probe this
+                model manually instead, register it as a target from <Link to="/chat">Chat</Link>.
               </p>
             )}
           </div>
