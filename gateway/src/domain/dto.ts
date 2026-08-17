@@ -45,3 +45,12 @@ export const createRunSchema = z
   });
 
 export type CreateRunInput = z.infer<typeof createRunSchema>;
+
+export const chatSchema = z.object({
+  message: z.string().min(1),
+  system_prompt: z.string().optional(),
+  max_tokens: z.number().int().min(1).max(4096).optional(),
+  temperature: z.number().min(0).max(2).optional(),
+});
+
+export type ChatInput = z.infer<typeof chatSchema>;
