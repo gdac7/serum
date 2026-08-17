@@ -6,9 +6,7 @@ import { runService } from "../services/run.service";
 import { chatService } from "../services/chat.service";
 import { authService } from "../services/auth.service";
 import { runRepository } from "../repositories/run.repository";
-import { redTeamClient, RedTeamServiceError } from "../infra/redteam.client";
-import { pipeChatSse } from "../infra/chat-stream";
-import { HttpError } from "../domain/errors";
+import { streamChatResponse } from "../infra/chat-route";
 import { sseHub } from "../infra/sse.hub";
 
 export const runsRouter = Router();
@@ -77,48 +75,14 @@ runsRouter.post(
   "/runs/:id/chat",
   requireAuth,
   validateBody(chatSchema),
-  async (req, res, next) => {
-    let run;
-    try {
-      run = await chatService.loadRun(req.user!.id, req.params.id);
-    } catch (err) {
-      return next(err);
-    }
-
-    res.writeHead(200, {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-      "X-Accel-Buffering": "no",
-    });
-
-    let closed = false;
-    req.on("close", () => {
-      closed = true;
-    });
-    const write = (obj: unknown) => {
-      if (!closed) res.write(`data: ${JSON.stringify(obj)}\n\n`);
-    };
-
-    try {
-      const { clientId, targetId } = await chatService.ensureTargetLoaded(run, (text) =>
-        write({ type: "status", text }),
-      );
-      if (closed) return;
-      const upstream = await redTeamClient.chatStream(clientId, targetId, req.body);
-      await pipeChatSse(upstream, res, () => closed);
-    } catch (err) {
-      const detail =
-        err instanceof RedTeamServiceError
-          ? err.body
-          : err instanceof HttpError
-            ? err.message
-            : "chat failed";
-      write({ type: "error", error: detail });
-    } finally {
-      if (!closed) res.end();
-    }
-  },
+  (req, res, next) =>
+    streamChatResponse(
+      req,
+      res,
+      next,
+      () => chatService.loadRun(req.user!.id, req.params.id),
+      (run, onStatus) => chatService.ensureTargetLoaded(run, onStatus),
+    ),
 );
 
 // EventSource can't send an Authorization header, so the JWT rides in the query.

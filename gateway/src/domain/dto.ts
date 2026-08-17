@@ -8,6 +8,35 @@ export const credentialsSchema = z.object({
 
 export type Credentials = z.infer<typeof credentialsSchema>;
 
+// Shared by createRunSchema and registerTargetSchema: both carry the same
+// target-config shape, and kind:"api" needs the same fields validated either way.
+function refineApiTarget(
+  val: { kind: string; endpoint_url?: string; api_key_env?: string },
+  ctx: z.RefinementCtx,
+) {
+  if (val.kind !== "api") return;
+  if (!val.api_key_env) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["api_key_env"],
+      message: "api_key_env is required for kind:api",
+    });
+  }
+  if (!val.endpoint_url) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["endpoint_url"],
+      message: "endpoint_url is required for kind:api",
+    });
+  } else if (!isPublicHttpsUrl(val.endpoint_url)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["endpoint_url"],
+      message: "endpoint_url must be https and not a private/internal host",
+    });
+  }
+}
+
 export const createRunSchema = z
   .object({
     kind: z.enum(["local", "api"]).default("local"),
@@ -20,31 +49,24 @@ export const createRunSchema = z
     api_key: z.string().optional(),
     api_key_env: z.string().optional(),
   })
-  .superRefine((val, ctx) => {
-    if (val.kind !== "api") return;
-    if (!val.api_key_env) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["api_key_env"],
-        message: "api_key_env is required for kind:api",
-      });
-    }
-    if (!val.endpoint_url) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["endpoint_url"],
-        message: "endpoint_url is required for kind:api",
-      });
-    } else if (!isPublicHttpsUrl(val.endpoint_url)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["endpoint_url"],
-        message: "endpoint_url must be https and not a private/internal host",
-      });
-    }
-  });
+  .superRefine(refineApiTarget);
 
 export type CreateRunInput = z.infer<typeof createRunSchema>;
+
+// Registers a target with no attack attached — unlike createRunSchema, which
+// always starts an AutoDAN-Turbo run once the target is loaded.
+export const registerTargetSchema = z
+  .object({
+    kind: z.enum(["local", "api"]).default("local"),
+    model_name: z.string().min(1),
+    load_4_bits: z.boolean().default(false),
+    endpoint_url: z.string().optional(),
+    api_key: z.string().optional(),
+    api_key_env: z.string().optional(),
+  })
+  .superRefine(refineApiTarget);
+
+export type RegisterTargetInput = z.infer<typeof registerTargetSchema>;
 
 export const chatSchema = z.object({
   message: z.string().min(1),

@@ -4,6 +4,7 @@ import { logger } from "./infra/logger";
 import { healthRouter } from "./routes/health.routes";
 import { authRouter } from "./routes/auth.routes";
 import { runsRouter } from "./routes/runs.routes";
+import { targetsRouter } from "./routes/targets.routes";
 import { errorHandler } from "./middleware/error.middleware";
 
 export function createApp() {
@@ -13,6 +14,7 @@ export function createApp() {
   app.use(healthRouter);
   app.use(authRouter);
   app.use(runsRouter);
+  app.use(targetsRouter);
   app.use(errorHandler);
   return app;
 }
