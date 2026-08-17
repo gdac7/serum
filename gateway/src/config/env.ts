@@ -12,6 +12,10 @@ const schema = z.object({
   GATEWAY_DATABASE_URL: z.string().min(1, "GATEWAY_DATABASE_URL is required"),
   JWT_SECRET: z.string().min(16, "JWT_SECRET must be at least 16 characters"),
   JWT_EXPIRES_SECONDS: z.coerce.number().default(3600),
+  // 32 bytes as 64 hex chars — the AES-256 key for target secrets at rest.
+  SECRETS_ENC_KEY: z
+    .string()
+    .regex(/^[0-9a-fA-F]{64}$/, "SECRETS_ENC_KEY must be 64 hex chars (32 bytes)"),
 });
 
 const parsed = schema.safeParse(process.env);

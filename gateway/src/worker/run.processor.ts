@@ -112,11 +112,21 @@ export async function processRun(job: Job<RunJobData>): Promise<void> {
   if (!pythonRunId) {
     await redTeamClient.createClient(clientId);
 
-    const target = await redTeamClient.registerTarget(clientId, {
-      kind: "local",
-      model_name: run.model_name,
-      load_4_bits: run.load_4_bits,
-    });
+    const target = await redTeamClient.registerTarget(
+      clientId,
+      run.target_kind === "api"
+        ? {
+            kind: "api",
+            model_name: run.model_name,
+            endpoint_url: run.endpoint_url ?? undefined,
+            api_key_env: run.api_key_env ?? undefined,
+          }
+        : {
+            kind: "local",
+            model_name: run.model_name,
+            load_4_bits: run.load_4_bits,
+          },
+    );
     await runRepository.setTargetId(nodeRunId, target.target_id);
     log.info({ targetId: target.target_id }, "target registered");
 

@@ -23,3 +23,8 @@ CREATE TABLE IF NOT EXISTS runs (
 );
 
 CREATE INDEX IF NOT EXISTS runs_user_id_idx ON runs (user_id);
+
+ALTER TABLE runs ADD COLUMN IF NOT EXISTS target_kind text NOT NULL DEFAULT 'local';
+ALTER TABLE runs ADD COLUMN IF NOT EXISTS endpoint_url text;
+ALTER TABLE runs ADD COLUMN IF NOT EXISTS api_key_env text;
+ALTER TABLE runs ADD COLUMN IF NOT EXISTS encrypted_api_key text;

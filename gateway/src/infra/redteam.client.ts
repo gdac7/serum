@@ -28,6 +28,8 @@ export interface TargetConfig {
   kind: "local" | "api";
   model_name: string;
   load_4_bits?: boolean;
+  endpoint_url?: string;
+  api_key_env?: string;
 }
 
 export interface TargetCreateResponse {

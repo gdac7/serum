@@ -3,6 +3,7 @@ import type { CreateRunInput } from "../domain/dto";
 import { runRepository, RunRow } from "../repositories/run.repository";
 import { runsQueue } from "../infra/queue";
 import { redTeamClient, RedTeamServiceError } from "../infra/redteam.client";
+import { encrypt } from "../infra/crypto";
 
 function shapeRun(run: RunRow) {
   return {
@@ -13,6 +14,9 @@ function shapeRun(run: RunRow) {
     dataset: run.dataset,
     fresh_library: run.fresh_library,
     load_4_bits: run.load_4_bits,
+    target_kind: run.target_kind,
+    endpoint_url: run.endpoint_url,
+    api_key_env: run.api_key_env,
     error: run.error,
     created_at: run.created_at,
     updated_at: run.updated_at,
@@ -55,6 +59,10 @@ export const runService = {
       dataset: input.dataset,
       freshLibrary: input.fresh_library,
       load4Bits: input.load_4_bits,
+      targetKind: input.kind,
+      endpointUrl: input.endpoint_url ?? null,
+      apiKeyEnv: input.api_key_env ?? null,
+      encryptedApiKey: input.api_key ? encrypt(input.api_key) : null,
     });
 
     await runsQueue.add(
