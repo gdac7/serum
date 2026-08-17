@@ -2,32 +2,15 @@ import { Job } from "bullmq";
 import type { Logger } from "pino";
 import { logger } from "../infra/logger";
 import { runRepository } from "../repositories/run.repository";
-import {
-  redTeamClient,
-  RedTeamServiceError,
-  RedTeamRunStatus,
-} from "../infra/redteam.client";
+import { redTeamClient, RedTeamServiceError } from "../infra/redteam.client";
 import type { RunJobData } from "../infra/queue";
 import { publishRunEvent } from "../infra/run-events";
+import { toCoarseStatus } from "./status";
 
 const TARGET_POLL_MS = 3000;
 const RUN_POLL_MS = 4000;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-// Python reports fine-grained phases; the client only needs the coarse machine.
-function toCoarseStatus(status: RedTeamRunStatus): string {
-  switch (status) {
-    case "queued":
-      return "queued";
-    case "completed":
-      return "completed";
-    case "failed":
-      return "failed";
-    default:
-      return "running";
-  }
-}
 
 async function waitForTarget(clientId: string, targetId: string): Promise<void> {
   for (;;) {

@@ -8,7 +8,8 @@
     "start": "tsx src/server.ts",
     "worker": "tsx watch src/worker/index.ts",
     "migrate": "tsx src/infra/db/migrate.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -29,7 +30,8 @@
     "@types/node": "^22.5.0",
     "@types/pg": "^8.11.6",
     "tsx": "^4.19.0",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "vitest": "^2.1.0"
   },
   "allowScripts": {
     "esbuild@0.28.2": true,
