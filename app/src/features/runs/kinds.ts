@@ -1,9 +1,16 @@
 import type { Phase, TargetKind } from "../../shared/types/run";
 
-// The backend has exactly one red-team method (AutoDAN-Turbo); the design's
-// "approach" sidebar pattern is repurposed here for the one axis that really
-// does change the config shape and target lifecycle: how the target is
-// reached (a model loaded in-process vs. the client's own hosted endpoint).
+// The backend has exactly one red-team method — the design's sidebar lists
+// approaches; this backend has a single one, so it's always selected.
+export const APPROACH = {
+  name: "AutoDAN-Turbo",
+  description:
+    "Discovers and refines jailbreak strategies against a target through warm-up, lifelong-learning, and evaluate phases.",
+};
+
+// Target kind isn't a separate approach — it's a parameter of AutoDAN-Turbo,
+// since it's the one axis that changes the config shape and target lifecycle
+// (a model loaded in-process vs. the client's own hosted endpoint).
 export interface KindDef {
   id: TargetKind;
   name: string;

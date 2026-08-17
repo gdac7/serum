@@ -4,7 +4,7 @@ import { useAuth } from "../../shared/auth/AuthContext";
 import { runsApi } from "../../shared/api/runs";
 import { ApiError } from "../../shared/api/client";
 import { SegMulti } from "../../shared/components/SegMulti";
-import { KIND_DEFS, PHASE_OPTIONS, DEFAULT_LOCAL_FORM, DEFAULT_API_FORM } from "./kinds";
+import { APPROACH, KIND_DEFS, PHASE_OPTIONS, DEFAULT_LOCAL_FORM, DEFAULT_API_FORM } from "./kinds";
 import type { LocalFormState, ApiFormState } from "./kinds";
 import type { CreateRunInput, Phase, TargetKind } from "../../shared/types/run";
 
@@ -37,8 +37,6 @@ export function SecurityTestingPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [createdRunId, setCreatedRunId] = useState<string | null>(null);
-
-  const selectedDef = KIND_DEFS.find((k) => k.id === selectedKind)!;
 
   function selectKind(kind: TargetKind) {
     setSelectedKind(kind);
@@ -105,27 +103,45 @@ export function SecurityTestingPage() {
             opacity: 0.55,
           }}
         >
-          Target kind
+          Approach
         </div>
-        {KIND_DEFS.map((k) => (
-          <button
-            key={k.id}
-            type="button"
-            className={`list-item${k.id === selectedKind ? " is-active" : ""}`}
-            onClick={() => selectKind(k.id)}
-          >
-            <div className="list-item-title">{k.name}</div>
-            <div className="list-item-subtitle">{k.description}</div>
-          </button>
-        ))}
+        <button type="button" className="list-item is-active">
+          <div className="list-item-title">{APPROACH.name}</div>
+          <div className="list-item-subtitle">{APPROACH.description}</div>
+        </button>
       </aside>
 
       <main style={{ flex: 1, overflowY: "auto", padding: "var(--space-8) var(--space-4)" }}>
         <div style={{ maxWidth: 560, margin: "0 auto" }}>
-          <h1>{selectedDef.name}</h1>
-          <p style={{ opacity: 0.7, marginBottom: "var(--space-6)" }}>{selectedDef.description}</p>
+          <h1>{APPROACH.name}</h1>
+          <p style={{ opacity: 0.7, marginBottom: "var(--space-6)" }}>{APPROACH.description}</p>
 
           <div style={{ display: "grid", gap: "var(--space-4)" }}>
+            <div className="field">
+              <label>Target kind</label>
+              <div className="seg" role="radiogroup" aria-label="Target kind">
+                {KIND_DEFS.map((k) => (
+                  <label key={k.id} className="seg-opt">
+                    <input
+                      type="radio"
+                      name="target-kind"
+                      checked={selectedKind === k.id}
+                      onChange={() => selectKind(k.id)}
+                    />
+                    {k.name}
+                  </label>
+                ))}
+              </div>
+              <div className="form-hint">
+                {KIND_DEFS.find((k) => k.id === selectedKind)?.description}
+              </div>
+            </div>
+
+            <div className="hr" style={{ margin: "var(--space-2) 0" }} />
+            <div style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", opacity: 0.55 }}>
+              Parameters for {APPROACH.name}
+            </div>
+
             <div className="field">
               <label>Model name</label>
               <input
@@ -188,11 +204,6 @@ export function SecurityTestingPage() {
               <span className="dot" style={{ borderRadius: 0 }} />
               Fresh library (ignore this target's stored strategies)
             </label>
-
-            <div className="hr" style={{ margin: "var(--space-2) 0" }} />
-            <div style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", opacity: 0.55 }}>
-              Parameters for {selectedDef.name}
-            </div>
 
             {selectedKind === "local" ? (
               <label className="radio" style={{ fontSize: 13 }}>
