@@ -27,10 +27,19 @@ export function ResultsPage() {
     runsApi
       .list(token)
       .then((data) => {
-        if (!cancelled) setRuns(data);
+        if (!cancelled) {
+          setError(null);
+          setRuns(data);
+        }
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : "failed to load runs");
+        if (!cancelled) {
+          setError(
+            err instanceof ApiError
+              ? err.message
+              : "couldn't reach the server — check the gateway is running",
+          );
+        }
       });
     return () => {
       cancelled = true;

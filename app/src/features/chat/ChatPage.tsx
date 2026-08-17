@@ -32,10 +32,17 @@ export function ChatPage() {
     targetsApi
       .list(token)
       .then((data) => {
+        setError(null);
         setTargets(data);
         setActiveId((prev) => prev ?? data[0]?.target_id ?? null);
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : "failed to load targets"));
+      .catch((err) =>
+        setError(
+          err instanceof ApiError
+            ? err.message
+            : "couldn't reach the server — check the gateway is running",
+        ),
+      );
   }
 
   useEffect(loadTargets, [token]);

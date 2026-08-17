@@ -27,7 +27,13 @@ export function RunDetailDialog({ runId, onClose }: { runId: string; onClose: ()
         }
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : "failed to load run");
+        if (!cancelled) {
+          setError(
+            err instanceof ApiError
+              ? err.message
+              : "couldn't reach the server — check the gateway is running",
+          );
+        }
       });
     return () => {
       cancelled = true;
