@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { api, RunView } from "./api";
 
 const PHASES = ["warmup", "lifelong", "evaluate"] as const;
-const TERMINAL = new Set(["completed", "failed"]);
 
 export function App() {
   const [token, setToken] = useState<string | null>(() =>
@@ -203,31 +202,31 @@ function RunsPanel({ token }: { token: string }) {
 
 function RunCard({ token, id }: { token: string; id: string }) {
   const [run, setRun] = useState<RunView | null>(null);
+  const [live, setLive] = useState<string | null>(null);
+  const [discovered, setDiscovered] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let active = true;
-    let timer: ReturnType<typeof setTimeout>;
+    api.getRun(token, id).then(setRun).catch(() => {});
 
-    async function poll() {
-      try {
-        const view = await api.getRun(token, id);
-        if (!active) return;
-        setRun(view);
-        if (!TERMINAL.has(view.status)) {
-          timer = setTimeout(poll, 3000);
-        }
-      } catch (err) {
-        if (!active) return;
-        setError((err as Error).message);
+    const es = new EventSource(
+      `/runs/${id}/events?access_token=${encodeURIComponent(token)}`,
+    );
+    es.onmessage = (e) => {
+      const ev = JSON.parse(e.data);
+      if (ev.type === "snapshot" || ev.type === "status") {
+        setLive(ev.python_status ?? ev.status);
+      } else if (ev.type === "progress") {
+        setDiscovered(ev.discovered_this_run);
+      } else if (ev.type === "completed" || ev.type === "failed") {
+        setLive(ev.type);
+        api.getRun(token, id).then(setRun).catch(() => {});
+        es.close();
       }
-    }
-
-    poll();
-    return () => {
-      active = false;
-      clearTimeout(timer);
     };
+    es.onerror = () => setError("sse connection lost");
+
+    return () => es.close();
   }, [token, id]);
 
   return (
@@ -235,7 +234,7 @@ function RunCard({ token, id }: { token: string; id: string }) {
       <div className="run-head">
         <code>{id}</code>
         <span className={`status status-${run?.status ?? "unknown"}`}>
-          {run?.status ?? "…"}
+          {live ?? run?.status ?? "…"}
         </span>
       </div>
       {run && (
@@ -243,8 +242,11 @@ function RunCard({ token, id }: { token: string; id: string }) {
           {run.model_name} · [{run.phases.join(", ")}]
         </div>
       )}
+      {discovered !== null && (
+        <div className="muted small">strategies discovered: {discovered}</div>
+      )}
       {run?.error && <div className="msg err">error: {run.error}</div>}
-      {error && <div className="msg err">poll error: {error}</div>}
+      {error && <div className="msg err">{error}</div>}
     </div>
   );
 }

@@ -10,6 +10,11 @@ export interface PublicUser {
 }
 
 export const authService = {
+  verifyToken(token: string): PublicUser {
+    const payload = jwt.verify(token, env.JWT_SECRET) as jwt.JwtPayload;
+    return { id: String(payload.sub), email: String(payload.email) };
+  },
+
   async register(email: string, password: string): Promise<PublicUser> {
     if (await userRepository.findByEmail(email)) {
       throw new HttpError(409, "email already registered");

@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import { env } from "../config/env";
+import { authService } from "../services/auth.service";
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   const header = req.headers.authorization;
@@ -8,8 +7,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     return res.status(401).json({ error: "missing bearer token" });
   }
   try {
-    const payload = jwt.verify(header.slice(7), env.JWT_SECRET) as jwt.JwtPayload;
-    req.user = { id: String(payload.sub), email: String(payload.email) };
+    req.user = authService.verifyToken(header.slice(7));
     next();
   } catch {
     res.status(401).json({ error: "invalid token" });

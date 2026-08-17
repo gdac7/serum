@@ -8,6 +8,7 @@ import {
   RedTeamRunStatus,
 } from "../infra/redteam.client";
 import type { RunJobData } from "../infra/queue";
+import { publishRunEvent } from "../infra/run-events";
 
 const TARGET_POLL_MS = 3000;
 const RUN_POLL_MS = 4000;
@@ -45,20 +46,51 @@ async function pollToTerminal(
   pythonRunId: string,
   log: Logger,
 ): Promise<void> {
-  let last: string | null = null;
+  let lastCoarse: string | null = null;
+  let lastFine: string | null = null;
+  let lastDiscovered: number | null = null;
   for (;;) {
     const run = await redTeamClient.getRunStatus(clientId, pythonRunId);
     const coarse = toCoarseStatus(run.status);
-    if (coarse !== last) {
+    if (coarse !== lastCoarse) {
       await runRepository.setStatus(nodeRunId, coarse);
-      last = coarse;
-      log.info({ pythonStatus: run.status, coarse }, "run status");
+      lastCoarse = coarse;
     }
+    if (run.status !== lastFine) {
+      lastFine = run.status;
+      log.info({ pythonStatus: run.status, coarse }, "run status");
+      await publishRunEvent(nodeRunId, {
+        type: "status",
+        python_status: run.status,
+        coarse,
+      });
+    }
+
+    try {
+      const progress = await redTeamClient.getRunProgress(clientId, pythonRunId);
+      if (progress.discovered_this_run !== lastDiscovered) {
+        lastDiscovered = progress.discovered_this_run;
+        await publishRunEvent(nodeRunId, {
+          type: "progress",
+          total: progress.total,
+          loaded_from_library: progress.loaded_from_library,
+          discovered_this_run: progress.discovered_this_run,
+        });
+      }
+    } catch (err) {
+      log.debug({ err }, "progress poll failed; continuing");
+    }
+
     if (run.status === "failed") {
-      await runRepository.setError(nodeRunId, run.error ?? "run failed");
+      const error = run.error ?? "run failed";
+      await runRepository.setError(nodeRunId, error);
+      await publishRunEvent(nodeRunId, { type: "failed", error });
       return;
     }
-    if (run.status === "completed") return;
+    if (run.status === "completed") {
+      await publishRunEvent(nodeRunId, { type: "completed" });
+      return;
+    }
     await sleep(RUN_POLL_MS);
   }
 }
