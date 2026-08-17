@@ -8,7 +8,7 @@ export function Nav() {
 
   return (
     <nav className="nav">
-      <span className="nav-brand">Redteam</span>
+      <span className="nav-brand">Serum</span>
       <NavLink to="/chat">Chat</NavLink>
       <NavLink to="/security-testing">Security Testing</NavLink>
       <NavLink to="/results">Results</NavLink>

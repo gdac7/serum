@@ -28,7 +28,7 @@ export function LoginPage() {
     <div className="login-shell">
       <form className="login-card" onSubmit={onSubmit}>
         <div>
-          <span className="nav-brand">Redteam</span>
+          <span className="nav-brand">Serum</span>
           <p className="text-muted" style={{ marginTop: "var(--space-1)" }}>
             {mode === "login" ? "Log in to continue." : "Create an account."}
           </p>
