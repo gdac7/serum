@@ -20,10 +20,42 @@ runsRouter.post(
   },
 );
 
+runsRouter.get("/runs", requireAuth, async (req, res, next) => {
+  try {
+    res.json(await runService.listRuns(req.user!.id));
+  } catch (err) {
+    next(err);
+  }
+});
+
 runsRouter.get("/runs/:id", requireAuth, async (req, res, next) => {
   try {
     const run = await runService.getRun(req.user!.id, req.params.id);
     res.json(run);
+  } catch (err) {
+    next(err);
+  }
+});
+
+runsRouter.get("/runs/:id/results", requireAuth, async (req, res, next) => {
+  try {
+    res.json(await runService.getResults(req.user!.id, req.params.id));
+  } catch (err) {
+    next(err);
+  }
+});
+
+runsRouter.get("/runs/:id/metrics", requireAuth, async (req, res, next) => {
+  try {
+    res.json(await runService.getMetrics(req.user!.id, req.params.id));
+  } catch (err) {
+    next(err);
+  }
+});
+
+runsRouter.get("/runs/:id/progress", requireAuth, async (req, res, next) => {
+  try {
+    res.json(await runService.getProgress(req.user!.id, req.params.id));
   } catch (err) {
     next(err);
   }

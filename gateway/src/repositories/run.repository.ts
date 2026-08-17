@@ -51,6 +51,14 @@ export const runRepository = {
     return rows[0] ?? null;
   },
 
+  async listByUser(userId: string): Promise<RunRow[]> {
+    const { rows } = await pool.query<RunRow>(
+      "SELECT * FROM runs WHERE user_id = $1 ORDER BY created_at DESC",
+      [userId],
+    );
+    return rows;
+  },
+
   async findByIdForUser(id: string, userId: string): Promise<RunRow | null> {
     const { rows } = await pool.query<RunRow>(
       "SELECT * FROM runs WHERE id = $1 AND user_id = $2",

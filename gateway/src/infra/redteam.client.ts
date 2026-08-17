@@ -68,6 +68,57 @@ export interface RunStatusResponse {
   persist_errors: string[];
 }
 
+export interface Generation {
+  malicious_request: string;
+  attack_prompt: string;
+  target_response: string;
+  score: number | null;
+}
+
+export interface PhaseSummary {
+  total_attacks: number;
+  successful_attacks: number;
+  strategies_discovered: number;
+  average_score: number;
+  phase_time_minutes: number;
+  strategy_names: string[];
+}
+
+export interface HarmbenchMetrics {
+  asr: number;
+  rsr: number;
+  n_behaviors: number;
+  n_attempts: number;
+}
+
+export interface RunResultsResponse {
+  client_id: string;
+  run_id: string;
+  target_id: string;
+  status: RedTeamRunStatus;
+  phases: Record<string, PhaseSummary>;
+  generations: Record<string, Generation[]> | null;
+  metrics: HarmbenchMetrics | null;
+}
+
+export interface RunMetricsResponse {
+  client_id: string;
+  run_id: string;
+  target_id: string;
+  status: RedTeamRunStatus;
+  metrics: HarmbenchMetrics;
+}
+
+export interface RunProgressResponse {
+  run_id: string;
+  status: RedTeamRunStatus;
+  total: number;
+  loaded_from_library: number | null;
+  discovered_this_run: number | null;
+  persist_errors: string[];
+  strategies: Record<string, unknown>[];
+}
+
 // Carries the HTTP status so callers can tell a permanent 4xx (bad request,
 // ownership) from a transient failure worth retrying.
 export class RedTeamServiceError extends Error {
@@ -124,5 +175,23 @@ export const redTeamClient = {
     request<RunStatusResponse>(
       "GET",
       `/v1/runs/${runId}?client_id=${clientId}`,
+    ),
+
+  getRunResults: (clientId: string, runId: string) =>
+    request<RunResultsResponse>(
+      "GET",
+      `/v1/runs/${runId}/results?client_id=${clientId}`,
+    ),
+
+  getRunMetrics: (clientId: string, runId: string) =>
+    request<RunMetricsResponse>(
+      "GET",
+      `/v1/runs/${runId}/metrics?client_id=${clientId}`,
+    ),
+
+  getRunProgress: (clientId: string, runId: string) =>
+    request<RunProgressResponse>(
+      "GET",
+      `/v1/runs/${runId}/progress?client_id=${clientId}`,
     ),
 };
