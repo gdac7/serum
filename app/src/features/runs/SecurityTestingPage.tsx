@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../shared/auth/AuthContext";
 import { runsApi } from "../../shared/api/runs";
+import { targetsApi, type TargetSummary } from "../../shared/api/targets";
 import { ApiError } from "../../shared/api/client";
 import { SegMulti } from "../../shared/components/SegMulti";
 import { APPROACH, KIND_DEFS, PHASE_OPTIONS, DEFAULT_LOCAL_FORM, DEFAULT_API_FORM } from "./kinds";
 import type { LocalFormState, ApiFormState } from "./kinds";
 import type { CreateRunInput, Phase, TargetKind } from "../../shared/types/run";
+
+const NEW_TARGET = "__new__";
 
 function parseDataset(text: string): string[] {
   return text
@@ -37,11 +40,46 @@ export function SecurityTestingPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [createdRunId, setCreatedRunId] = useState<string | null>(null);
+  const [targets, setTargets] = useState<TargetSummary[]>([]);
+  const [selectedTargetId, setSelectedTargetId] = useState(NEW_TARGET);
+
+  useEffect(() => {
+    if (!token) return;
+    targetsApi.list(token).then(setTargets).catch(() => {});
+  }, [token]);
 
   function selectKind(kind: TargetKind) {
     setSelectedKind(kind);
+    setSelectedTargetId(NEW_TARGET);
     setCreatedRunId(null);
     setError(null);
+  }
+
+  // Prefills the form from an already-registered target rather than running
+  // against it directly: POST /runs has no way to reference a target_id, only
+  // a target config. Python derives target_id from that config deterministically
+  // though, so reusing the same values resolves to the same loaded weights —
+  // no re-registration, no reload — even though the gateway sees it as a new run.
+  function selectExistingTarget(targetId: string) {
+    setSelectedTargetId(targetId);
+    setCreatedRunId(null);
+    setError(null);
+    if (targetId === NEW_TARGET) return;
+
+    const t = targets.find((x) => x.target_id === targetId);
+    if (!t) return;
+
+    setSelectedKind(t.kind);
+    if (t.kind === "local") {
+      setLocal((s) => ({ ...s, model_name: t.model_name, load_4_bits: t.load_4_bits }));
+    } else {
+      setApi((s) => ({
+        ...s,
+        model_name: t.model_name,
+        endpoint_url: t.endpoint_url ?? "",
+        api_key_env: t.api_key_env ?? "",
+      }));
+    }
   }
 
   function setPhases(kind: TargetKind, phases: Phase[]) {
@@ -117,6 +155,27 @@ export function SecurityTestingPage() {
           <p style={{ opacity: 0.7, marginBottom: "var(--space-6)" }}>{APPROACH.description}</p>
 
           <div style={{ display: "grid", gap: "var(--space-4)" }}>
+            <div className="field">
+              <label>Target</label>
+              <select
+                className="input"
+                value={selectedTargetId}
+                onChange={(e) => selectExistingTarget(e.target.value)}
+              >
+                <option value={NEW_TARGET}>New target</option>
+                {targets.map((t) => (
+                  <option key={t.target_id} value={t.target_id}>
+                    {t.model_name} ({t.kind}) — {t.status}
+                  </option>
+                ))}
+              </select>
+              <div className="form-hint">
+                {selectedTargetId === NEW_TARGET
+                  ? "Or fill in a new target below."
+                  : "Fields below are prefilled from this target — edit freely before running."}
+              </div>
+            </div>
+
             <div className="field">
               <label>Target kind</label>
               <div className="seg" role="radiogroup" aria-label="Target kind">
