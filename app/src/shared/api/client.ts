@@ -38,5 +38,14 @@ export async function apiRequest<T>(
     throw new ApiError(res.status, await parseErrorBody(res));
   }
   if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
+
+  try {
+    return (await res.json()) as T;
+  } catch {
+    // A 2xx response that isn't JSON usually means this path isn't actually
+    // reaching the gateway (e.g. an unproxied route falling through to the
+    // dev server's own index.html) — a distinct, debuggable failure from a
+    // dropped connection, which is what a bare thrown error would suggest.
+    throw new ApiError(res.status, `unexpected response from ${path} — is it proxied to the gateway?`);
+  }
 }

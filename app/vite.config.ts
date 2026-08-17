@@ -12,6 +12,7 @@ export default defineConfig({
     proxy: {
       "/auth": gateway,
       "/runs": gateway,
+      "/targets": gateway,
       "/me": gateway,
       "/health": gateway,
     },
