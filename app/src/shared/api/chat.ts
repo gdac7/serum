@@ -1,4 +1,5 @@
 import { ApiError } from "./client";
+import { decodeHtmlEntities } from "../utils/html-entities";
 import type { ChatFrame } from "../types/run";
 
 export interface ChatTurnInput {
@@ -58,7 +59,14 @@ export async function streamChat(
       const json = dataLine.slice(5).trim();
       if (!json) continue;
       try {
-        onFrame(JSON.parse(json) as ChatFrame);
+        const frame = JSON.parse(json) as ChatFrame;
+        // The gateway HTML-escapes text/error (infra/sanitize.ts) as transport-
+        // level XSS defense for consumers that might render raw HTML. This app
+        // never does (plain React text nodes, already auto-escaped), so decode
+        // here or entities show up literally, e.g. "It&#39;s" instead of "It's".
+        if (frame.text) frame.text = decodeHtmlEntities(frame.text);
+        if (frame.error) frame.error = decodeHtmlEntities(frame.error);
+        onFrame(frame);
       } catch {
         // ignore malformed frame
       }
