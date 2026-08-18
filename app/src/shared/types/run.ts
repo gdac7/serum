@@ -23,6 +23,8 @@ export interface RunSummary {
   error: string | null;
   created_at: string;
   updated_at: string;
+  started_at: string | null;
+  ended_at: string | null;
 }
 
 export interface Generation {

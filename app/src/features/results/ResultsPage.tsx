@@ -6,7 +6,8 @@ import { StatusTag } from "../../shared/components/StatusTag";
 import type { RunSummary } from "../../shared/types/run";
 import { RunDetailDialog } from "./RunDetailDialog";
 
-function formatDate(iso: string): string {
+function formatDate(iso: string | null): string {
+  if (!iso) return "—";
   return new Date(iso).toLocaleString(undefined, {
     month: "short",
     day: "numeric",
@@ -90,7 +91,8 @@ export function ResultsPage() {
                 <th>Kind</th>
                 <th>Phases</th>
                 <th>Status</th>
-                <th>Date</th>
+                <th>Started</th>
+                <th>Ended</th>
               </tr>
             </thead>
             <tbody>
@@ -102,7 +104,8 @@ export function ResultsPage() {
                   <td>
                     <StatusTag status={run.status} />
                   </td>
-                  <td className="text-muted">{formatDate(run.created_at)}</td>
+                  <td className="text-muted">{formatDate(run.started_at)}</td>
+                  <td className="text-muted">{formatDate(run.ended_at)}</td>
                 </tr>
               ))}
             </tbody>

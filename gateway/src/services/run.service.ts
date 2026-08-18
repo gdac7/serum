@@ -22,6 +22,8 @@ function shapeRun(run: RunRow) {
     error: run.error,
     created_at: run.created_at,
     updated_at: run.updated_at,
+    started_at: run.started_at,
+    ended_at: run.ended_at,
   };
 }
 

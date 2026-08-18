@@ -1,11 +1,14 @@
 import { HttpError } from "../domain/errors";
 import { targetRepository, TargetRow } from "../repositories/target.repository";
+import { runRepository } from "../repositories/run.repository";
 import { redTeamClient, TargetConfig } from "../infra/redteam.client";
 import { encrypt } from "../infra/crypto";
 import { ensureTargetLoaded } from "./target-loader";
 import type { RegisterTargetInput } from "../domain/dto";
 
-function shapeTarget(t: TargetRow) {
+// in_use marks a target whose model is running a test right now: the run holds
+// the GPU, so chat is unavailable until it finishes.
+function shapeTarget(t: TargetRow, inUse = false) {
   return {
     target_id: t.id,
     kind: t.kind,
@@ -15,6 +18,7 @@ function shapeTarget(t: TargetRow) {
     load_4_bits: t.load_4_bits,
     status: t.status,
     error: t.error,
+    in_use: inUse,
     created_at: t.created_at,
     updated_at: t.updated_at,
   };
@@ -57,7 +61,8 @@ export const targetService = {
 
   async list(userId: string) {
     const rows = await targetRepository.listByUser(userId);
-    return rows.map(shapeTarget);
+    const active = new Set(await runRepository.activeTargetIds(userId));
+    return rows.map((t) => shapeTarget(t, t.python_target_id != null && active.has(t.python_target_id)));
   },
 
   // Re-checks Python health and syncs the local row — status may have moved
@@ -71,7 +76,11 @@ export const targetService = {
     if (health.status !== row.status || (health.error ?? null) !== row.error) {
       await targetRepository.setStatus(row.id, health.status, health.error ?? null);
     }
-    return shapeTarget({ ...row, status: health.status, error: health.error ?? null });
+    const active = await runRepository.activeTargetIds(userId);
+    return shapeTarget(
+      { ...row, status: health.status, error: health.error ?? null },
+      active.includes(row.python_target_id),
+    );
   },
 
   async loadTarget(userId: string, id: string): Promise<TargetRow> {

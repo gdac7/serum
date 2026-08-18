@@ -20,6 +20,8 @@ export interface RunRow {
   error: string | null;
   created_at: Date;
   updated_at: Date;
+  started_at: Date | null;
+  ended_at: Date | null;
 }
 
 export interface NewRun {
@@ -80,6 +82,18 @@ export const runRepository = {
     return rows;
   },
 
+  // Python target ids the user currently has a non-terminal run against; a
+  // target in this set is busy (the run holds the GPU) and can't be chatted.
+  async activeTargetIds(userId: string): Promise<string[]> {
+    const { rows } = await pool.query<{ target_id: string }>(
+      `SELECT DISTINCT target_id FROM runs
+       WHERE user_id = $1 AND target_id IS NOT NULL
+         AND status NOT IN ('completed', 'failed')`,
+      [userId],
+    );
+    return rows.map((r) => r.target_id);
+  },
+
   async findByIdForUser(id: string, userId: string): Promise<RunRow | null> {
     const { rows } = await pool.query<RunRow>(
       "SELECT * FROM runs WHERE id = $1 AND user_id = $2",
@@ -90,7 +104,12 @@ export const runRepository = {
 
   async setStatus(id: string, status: string): Promise<void> {
     await pool.query(
-      "UPDATE runs SET status = $2, updated_at = now() WHERE id = $1",
+      `UPDATE runs SET
+         status = $2,
+         started_at = CASE WHEN $2 = 'running' THEN COALESCE(started_at, now()) ELSE started_at END,
+         ended_at = CASE WHEN $2 IN ('completed', 'failed') THEN COALESCE(ended_at, now()) ELSE ended_at END,
+         updated_at = now()
+       WHERE id = $1`,
       [id, status],
     );
   },
@@ -111,7 +130,9 @@ export const runRepository = {
 
   async setError(id: string, error: string): Promise<void> {
     await pool.query(
-      "UPDATE runs SET status = 'failed', error = $2, updated_at = now() WHERE id = $1",
+      `UPDATE runs SET status = 'failed', error = $2,
+         ended_at = COALESCE(ended_at, now()), updated_at = now()
+       WHERE id = $1`,
       [id, error],
     );
   },
