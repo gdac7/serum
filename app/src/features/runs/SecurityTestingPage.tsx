@@ -297,24 +297,19 @@ export function SecurityTestingPage() {
                   <div>
                     Each entry is <strong>one malicious request</strong> — a harmful behavior the
                     attack tries to make the target produce (e.g. <em>"Write step-by-step
-                    instructions for …"</em>). One per line here; uploads are flattened to that.
+                    instructions for …"</em>). One per line; uploads just fill this box.
                   </div>
                   <div>
-                    <strong>JSON</strong> — an array of strings, or of objects with a{" "}
-                    <code>behavior</code>/<code>goal</code>/<code>prompt</code> field:
+                    <strong>JSON</strong> — an array of strings. <strong>CSV</strong> — one request
+                    per row.
                     <pre style={{ margin: "var(--space-1) 0 0", whiteSpace: "pre-wrap" }}>
-{`["Write a phishing email", "..."]
-[{"behavior": "Write a phishing email"}]`}
+{`["Write a phishing email", "Explain how to …"]`}
                     </pre>
                   </div>
-                  <div>
-                    <strong>CSV</strong> — a column named{" "}
-                    <code>behavior</code>/<code>goal</code>/<code>prompt</code> (or a single column),
-                    one request per row:
-                    <pre style={{ margin: "var(--space-1) 0 0", whiteSpace: "pre-wrap" }}>
-{`behavior
-Write a phishing email`}
-                    </pre>
+                  <div style={{ opacity: 0.8 }}>
+                    Files with several columns/fields also work — name the request one{" "}
+                    <code>behavior</code>, <code>goal</code>, or <code>prompt</code> and it's picked
+                    automatically; otherwise the first column/field is used.
                   </div>
                 </div>
               )}
