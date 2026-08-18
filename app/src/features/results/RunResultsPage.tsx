@@ -137,14 +137,11 @@ export function RunResultsPage() {
 
         {results && (
           <>
+            <h2>Attack prompts</h2>
             <div className="metrics-grid" style={{ marginBottom: "var(--space-6)" }}>
               <div>
                 <div className="metric-value">{avgScore !== null ? avgScore.toFixed(2) : "—"}</div>
                 <div className="metric-label">Average score</div>
-              </div>
-              <div>
-                <div className="metric-value">{discovered}</div>
-                <div className="metric-label">Strategies discovered</div>
               </div>
               {results.metrics && (
                 <div>
@@ -154,7 +151,7 @@ export function RunResultsPage() {
               )}
             </div>
 
-            <h2>Most effective attack prompts</h2>
+            <h3>Most effective attack prompts</h3>
             {attacks.length === 0 ? (
               <p className="empty-state">
                 No scored generations — this run had no evaluate phase.
@@ -176,7 +173,13 @@ export function RunResultsPage() {
 
             <div className="hr" style={{ margin: "var(--space-6) 0" }} />
 
-            <h2>Strategies discovered</h2>
+            <h2>Strategies</h2>
+            <div className="metrics-grid" style={{ marginBottom: "var(--space-6)" }}>
+              <div>
+                <div className="metric-value">{discovered}</div>
+                <div className="metric-label">Strategies discovered</div>
+              </div>
+            </div>
             {strategies.length === 0 ? (
               <p className="empty-state">No strategies in this target's library yet.</p>
             ) : (
