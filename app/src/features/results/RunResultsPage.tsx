@@ -5,27 +5,11 @@ import { runsApi } from "../../shared/api/runs";
 import { ApiError } from "../../shared/api/client";
 import { StatusTag } from "../../shared/components/StatusTag";
 import type {
-  Generation,
   RunProgress,
   RunResults,
   RunSummary,
   StrategyProgress,
 } from "../../shared/types/run";
-
-interface ScoredGeneration extends Generation {
-  behavior: string;
-}
-
-function topAttacks(results: RunResults | null): ScoredGeneration[] {
-  if (!results?.generations) return [];
-  const scored: ScoredGeneration[] = [];
-  for (const [behavior, gens] of Object.entries(results.generations)) {
-    for (const g of gens) {
-      if (g.score !== null) scored.push({ ...g, behavior });
-    }
-  }
-  return scored.sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 5);
-}
 
 const PHASE_ORDER = ["warmup", "lifelong", "evaluate"];
 const PHASE_LABEL: Record<string, string> = {
@@ -78,7 +62,6 @@ export function RunResultsPage() {
     };
   }, [token, id]);
 
-  const attacks = useMemo(() => topAttacks(results), [results]);
   const phases = useMemo(() => orderedPhases(results), [results]);
 
   const strategies = progress?.strategies ?? [];
@@ -191,25 +174,6 @@ export function RunResultsPage() {
               </table>
             )}
 
-            <h3 style={{ marginTop: "var(--space-5)" }}>Most effective attack prompts</h3>
-            {attacks.length === 0 ? (
-              <p className="empty-state">
-                No scored generations — this run had no evaluate phase.
-              </p>
-            ) : (
-              attacks.map((g, i) => (
-                <div key={i} className="transcript-item">
-                  <div className="transcript-label">
-                    {g.behavior} — score {g.score?.toFixed(2)}
-                  </div>
-                  <div className="transcript-text">{g.attack_prompt}</div>
-                  <div className="transcript-label" style={{ marginTop: "var(--space-2)" }}>
-                    Target response
-                  </div>
-                  <div className="transcript-text">{g.target_response}</div>
-                </div>
-              ))
-            )}
 
             <button
               type="button"
