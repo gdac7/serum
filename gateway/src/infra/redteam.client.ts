@@ -7,7 +7,7 @@ export interface RedTeamHealth {
   loaded_models: string[];
 }
 
-export type TargetStatus = "queued" | "loading" | "loaded" | "failed";
+export type TargetStatus = "unloaded" | "queued" | "loading" | "loaded" | "failed";
 
 export type RedTeamRunStatus =
   | "queued"
