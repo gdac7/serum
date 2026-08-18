@@ -6,7 +6,7 @@ import { targetsApi, type TargetSummary } from "../../shared/api/targets";
 import { ApiError } from "../../shared/api/client";
 import { SegMulti } from "../../shared/components/SegMulti";
 import { IconInfo } from "../../shared/components/icons";
-import { APPROACH, KIND_DEFS, PHASE_OPTIONS, DEFAULT_LOCAL_FORM, DEFAULT_API_FORM } from "./kinds";
+import { APPROACH, KIND_DEFS, LOCAL_MODELS, PHASE_OPTIONS, DEFAULT_LOCAL_FORM, DEFAULT_API_FORM } from "./kinds";
 import type { LocalFormState, ApiFormState } from "./kinds";
 import { parseDatasetFile } from "./datasetFile";
 import type { CreateRunInput, Phase, TargetKind } from "../../shared/types/run";
@@ -35,6 +35,9 @@ function validate(
 ): string | null {
   const form = kind === "local" ? local : api;
   if (!form.model_name.trim()) return "Model name is required.";
+  if (kind === "local" && !LOCAL_MODELS.includes(form.model_name.trim())) {
+    return "Choose a supported local model.";
+  }
   if (form.phases.length === 0) return "Select at least one training phase.";
   if (datasetSource === "custom" && parseDataset(form.dataset).length === 0) {
     return "Add at least one dataset entry.";
@@ -248,17 +251,30 @@ export function SecurityTestingPage() {
             </div>
 
             <div className="field">
-              <label>Model name</label>
-              <input
-                className="input"
-                placeholder={selectedKind === "local" ? "org/model on Hugging Face" : "label for logs"}
-                value={selectedKind === "local" ? local.model_name : api.model_name}
-                onChange={(e) =>
-                  selectedKind === "local"
-                    ? setLocal((s) => ({ ...s, model_name: e.target.value }))
-                    : setApi((s) => ({ ...s, model_name: e.target.value }))
-                }
-              />
+              <label>Model{selectedKind === "local" ? "" : " name"}</label>
+              {selectedKind === "local" ? (
+                <>
+                  <input
+                    className="input"
+                    list="local-models"
+                    placeholder="Search a supported model…"
+                    value={local.model_name}
+                    onChange={(e) => setLocal((s) => ({ ...s, model_name: e.target.value }))}
+                  />
+                  <datalist id="local-models">
+                    {LOCAL_MODELS.map((m) => (
+                      <option key={m} value={m} />
+                    ))}
+                  </datalist>
+                </>
+              ) : (
+                <input
+                  className="input"
+                  placeholder="label for logs"
+                  value={api.model_name}
+                  onChange={(e) => setApi((s) => ({ ...s, model_name: e.target.value }))}
+                />
+              )}
             </div>
 
             <div className="field">
