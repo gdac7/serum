@@ -148,7 +148,6 @@ export function RunResultsPage() {
               </div>
             )}
 
-            <h3>Average score by phase</h3>
             {phases.length === 0 ? (
               <p className="empty-state">No phase summaries for this run.</p>
             ) : (
