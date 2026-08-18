@@ -10,8 +10,8 @@ function StrategyCard({ s }: { s: StrategyProgress }) {
     <div className="transcript-item">
       <div className="card-kicker" style={{ marginBottom: "var(--space-2)" }}>
         {s.name}
-        {s.category ? ` · ${s.category}` : ""} — avg {s.average_score.toFixed(2)} · used{" "}
-        {s.usage_count}×{s.improvement !== null ? ` · +${s.improvement.toFixed(2)} improvement` : ""}
+        {s.category ? ` · ${s.category}` : ""} — avg {s.average_score.toFixed(2)}
+        {s.improvement !== null ? ` · +${s.improvement.toFixed(2)} improvement` : ""}
       </div>
 
       {s.malicious_request && (
@@ -54,12 +54,15 @@ function StrategyCard({ s }: { s: StrategyProgress }) {
   );
 }
 
+const PAGE_SIZE = 5;
+
 export function RunStrategiesPage() {
   const { id = "" } = useParams();
   const { token } = useAuth();
   const [run, setRun] = useState<RunSummary | null>(null);
   const [progress, setProgress] = useState<RunProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
     if (!token) return;
@@ -85,6 +88,9 @@ export function RunStrategiesPage() {
   }, [token, id]);
 
   const strategies = progress?.strategies ?? [];
+  const pageCount = Math.ceil(strategies.length / PAGE_SIZE);
+  const current = Math.min(page, Math.max(0, pageCount - 1));
+  const visible = strategies.slice(current * PAGE_SIZE, current * PAGE_SIZE + PAGE_SIZE);
 
   return (
     <main style={{ flex: 1, overflowY: "auto" }}>
@@ -120,9 +126,41 @@ export function RunStrategiesPage() {
           <p className="empty-state">No strategies in this target's library yet.</p>
         )}
 
-        {strategies.map((s) => (
+        {visible.map((s) => (
           <StrategyCard key={s.strategy_id} s={s} />
         ))}
+
+        {pageCount > 1 && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "var(--space-4)",
+              marginTop: "var(--space-4)",
+            }}
+          >
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={current === 0}
+              onClick={() => setPage(current - 1)}
+            >
+              Previous
+            </button>
+            <span className="text-muted">
+              Page {current + 1} of {pageCount}
+            </span>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={current >= pageCount - 1}
+              onClick={() => setPage(current + 1)}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </main>
   );
