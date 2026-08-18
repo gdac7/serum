@@ -204,6 +204,16 @@ export function RunResultsPage() {
               <p className="empty-state">No strategies in this target's library yet.</p>
             ) : (
               <>
+                <div style={{ textAlign: "center", marginBottom: "var(--space-5)" }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => navigate(`/results/${id}/strategies`)}
+                  >
+                    Show strategies
+                  </button>
+                </div>
+
                 {selected && (
                   <>
                     <div className="field">
