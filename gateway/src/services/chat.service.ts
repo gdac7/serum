@@ -1,6 +1,7 @@
 import { HttpError } from "../domain/errors";
 import { runRepository, RunRow } from "../repositories/run.repository";
 import { TargetConfig } from "../infra/redteam.client";
+import { decrypt } from "../infra/crypto";
 import { ensureTargetLoaded } from "./target-loader";
 
 function targetConfigFromRun(run: RunRow): TargetConfig {
@@ -9,7 +10,7 @@ function targetConfigFromRun(run: RunRow): TargetConfig {
         kind: "api",
         model_name: run.model_name,
         endpoint_url: run.endpoint_url ?? undefined,
-        api_key_env: run.api_key_env ?? undefined,
+        api_key: run.encrypted_api_key ? decrypt(run.encrypted_api_key) : undefined,
       }
     : { kind: "local", model_name: run.model_name, load_4_bits: run.load_4_bits };
 }

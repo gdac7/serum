@@ -24,7 +24,7 @@ describe("createRunSchema", () => {
       ...base,
       kind: "api",
       endpoint_url: "https://api.example.com/generate",
-      api_key_env: "MY_TOKEN",
+      api_key: "sk-secret",
     });
     expect(res.success).toBe(true);
   });
@@ -33,12 +33,12 @@ describe("createRunSchema", () => {
     const res = createRunSchema.safeParse({
       ...base,
       kind: "api",
-      api_key_env: "MY_TOKEN",
+      api_key: "sk-secret",
     });
     expect(res.success).toBe(false);
   });
 
-  it("rejects api run missing api_key_env", () => {
+  it("rejects api run missing api_key", () => {
     const res = createRunSchema.safeParse({
       ...base,
       kind: "api",
@@ -59,7 +59,7 @@ describe("createRunSchema", () => {
         ...base,
         kind: "api",
         endpoint_url: url,
-        api_key_env: "MY_TOKEN",
+        api_key: "sk-secret",
       });
       expect(res.success, url).toBe(false);
     }
@@ -82,7 +82,7 @@ describe("registerTargetSchema", () => {
     const res = registerTargetSchema.safeParse({
       model_name: base.model_name,
       kind: "api",
-      api_key_env: "MY_TOKEN",
+      api_key: "sk-secret",
     });
     expect(res.success).toBe(false);
   });
@@ -92,7 +92,7 @@ describe("registerTargetSchema", () => {
       model_name: base.model_name,
       kind: "api",
       endpoint_url: "https://api.example.com/generate",
-      api_key_env: "MY_TOKEN",
+      api_key: "sk-secret",
     });
     expect(res.success).toBe(true);
   });

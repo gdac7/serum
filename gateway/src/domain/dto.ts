@@ -11,15 +11,15 @@ export type Credentials = z.infer<typeof credentialsSchema>;
 // Shared by createRunSchema and registerTargetSchema: both carry the same
 // target-config shape, and kind:"api" needs the same fields validated either way.
 function refineApiTarget(
-  val: { kind: string; endpoint_url?: string; api_key_env?: string },
+  val: { kind: string; endpoint_url?: string; api_key?: string },
   ctx: z.RefinementCtx,
 ) {
   if (val.kind !== "api") return;
-  if (!val.api_key_env) {
+  if (!val.api_key) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      path: ["api_key_env"],
-      message: "api_key_env is required for kind:api",
+      path: ["api_key"],
+      message: "api_key is required for kind:api",
     });
   }
   if (!val.endpoint_url) {
@@ -50,7 +50,6 @@ export const createRunSchema = z
     load_4_bits: z.boolean().default(false),
     endpoint_url: z.string().optional(),
     api_key: z.string().optional(),
-    api_key_env: z.string().optional(),
   })
   .superRefine(refineApiTarget)
   .superRefine((val, ctx) => {
@@ -82,7 +81,6 @@ export const registerTargetSchema = z
     load_4_bits: z.boolean().default(false),
     endpoint_url: z.string().optional(),
     api_key: z.string().optional(),
-    api_key_env: z.string().optional(),
   })
   .superRefine(refineApiTarget);
 

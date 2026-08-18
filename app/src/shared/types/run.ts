@@ -17,7 +17,6 @@ export interface RunSummary {
   load_4_bits: boolean;
   target_kind: TargetKind;
   endpoint_url: string | null;
-  api_key_env: string | null;
   standard_dataset: string | null;
   standard_dataset_percent: number | null;
   error: string | null;
@@ -115,7 +114,6 @@ export interface CreateRunInput {
   load_4_bits: boolean;
   endpoint_url?: string;
   api_key?: string;
-  api_key_env?: string;
 }
 
 export interface CreateRunResponse {

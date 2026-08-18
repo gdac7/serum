@@ -3,6 +3,7 @@ import type { Logger } from "pino";
 import { logger } from "../infra/logger";
 import { runRepository } from "../repositories/run.repository";
 import { redTeamClient, RedTeamServiceError } from "../infra/redteam.client";
+import { decrypt } from "../infra/crypto";
 import type { RunJobData } from "../infra/queue";
 import { publishRunEvent } from "../infra/run-events";
 import { toCoarseStatus } from "./status";
@@ -102,7 +103,7 @@ export async function processRun(job: Job<RunJobData>): Promise<void> {
             kind: "api",
             model_name: run.model_name,
             endpoint_url: run.endpoint_url ?? undefined,
-            api_key_env: run.api_key_env ?? undefined,
+            api_key: run.encrypted_api_key ? decrypt(run.encrypted_api_key) : undefined,
           }
         : {
             kind: "local",

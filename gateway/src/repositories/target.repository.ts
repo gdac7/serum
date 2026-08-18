@@ -6,7 +6,6 @@ export interface TargetRow {
   kind: string;
   model_name: string;
   endpoint_url: string | null;
-  api_key_env: string | null;
   encrypted_api_key: string | null;
   load_4_bits: boolean;
   python_target_id: string | null;
@@ -21,7 +20,6 @@ export interface NewTarget {
   kind: string;
   modelName: string;
   endpointUrl: string | null;
-  apiKeyEnv: string | null;
   encryptedApiKey: string | null;
   load4Bits: boolean;
 }
@@ -30,15 +28,14 @@ export const targetRepository = {
   async create(t: NewTarget): Promise<TargetRow> {
     const { rows } = await pool.query<TargetRow>(
       `INSERT INTO targets
-         (user_id, kind, model_name, endpoint_url, api_key_env, encrypted_api_key, load_4_bits)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+         (user_id, kind, model_name, endpoint_url, encrypted_api_key, load_4_bits)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
       [
         t.userId,
         t.kind,
         t.modelName,
         t.endpointUrl,
-        t.apiKeyEnv,
         t.encryptedApiKey,
         t.load4Bits,
       ],
