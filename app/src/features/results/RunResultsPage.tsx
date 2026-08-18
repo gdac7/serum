@@ -97,7 +97,8 @@ export function RunResultsPage() {
       } else {
         agg.usage_count += s.usage_count;
         agg.score_sum += s.average_score * s.usage_count;
-        if (s.average_score > agg.example.average_score) agg.example = s;
+        // Show the context where this strategy improved the attack the most.
+        if ((s.improvement ?? 0) > (agg.example.improvement ?? 0)) agg.example = s;
       }
     }
     return [...byName.values()].map((a) => ({
@@ -224,12 +225,20 @@ export function RunResultsPage() {
                       <div className="transcript-text" style={{ marginBottom: "var(--space-3)" }}>
                         {selected.example.malicious_request || (
                           <span className="text-muted">
-                            not recorded — discovered before the request was tracked
+                            not recorded
                           </span>
                         )}
                       </div>
                       <div className="transcript-label">Weaker attempt</div>
                       <div className="transcript-text">{selected.example.example_prompt_pi}</div>
+                      {selected.example.response_solved && (
+                        <>
+                          <div className="transcript-label" style={{ marginTop: "var(--space-2)" }}>
+                            Target response
+                          </div>
+                          <div className="transcript-text">{selected.example.response_solved}</div>
+                        </>
+                      )}
                       <div
                         style={{
                           textAlign: "center",
@@ -243,6 +252,14 @@ export function RunResultsPage() {
                       </div>
                       <div className="transcript-label">Stronger attempt</div>
                       <div className="transcript-text">{selected.example.example_prompt_pj}</div>
+                      {selected.example.response_j && (
+                        <>
+                          <div className="transcript-label" style={{ marginTop: "var(--space-2)" }}>
+                            Target response
+                          </div>
+                          <div className="transcript-text">{selected.example.response_j}</div>
+                        </>
+                      )}
                     </div>
                   </>
                 )}

@@ -87,8 +87,11 @@ export interface StrategyProgress {
   success_rate: number;
   average_score: number;
   usage_count: number;
+  improvement: number | null;
   example_prompt_pi: string;
   example_prompt_pj: string;
+  response_solved: string;
+  response_j: string;
 }
 
 export interface RunProgress {
