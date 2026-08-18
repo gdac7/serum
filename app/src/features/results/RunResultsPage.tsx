@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../shared/auth/AuthContext";
 import { runsApi } from "../../shared/api/runs";
 import { ApiError } from "../../shared/api/client";
@@ -44,6 +44,7 @@ function averageGenerationScore(results: RunResults | null): number | null {
 export function RunResultsPage() {
   const { id = "" } = useParams();
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [run, setRun] = useState<RunSummary | null>(null);
   const [results, setResults] = useState<RunResults | null>(null);
   const [progress, setProgress] = useState<RunProgress | null>(null);
@@ -186,6 +187,17 @@ export function RunResultsPage() {
                   <div className="transcript-text">{g.target_response}</div>
                 </div>
               ))
+            )}
+
+            {attacks.length > 0 && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ marginTop: "var(--space-3)" }}
+                onClick={() => navigate(`/results/${id}/transcript`)}
+              >
+                Show attack prompts and target responses
+              </button>
             )}
 
             <div className="hr" style={{ margin: "var(--space-6) 0" }} />
