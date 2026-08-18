@@ -138,7 +138,7 @@ export function RunResultsPage() {
 
         {results && (
           <>
-            <h2>Attack prompts</h2>
+            <h2 style={{ textAlign: "center" }}>Attack prompts</h2>
             {results.metrics && (
               <div className="metrics-grid" style={{ marginBottom: "var(--space-6)" }}>
                 <div>
@@ -184,9 +184,7 @@ export function RunResultsPage() {
               Show attack prompts and target responses
             </button>
 
-            <div className="hr" style={{ margin: "var(--space-6) 0" }} />
-
-            <h2>Strategies</h2>
+            <h2 style={{ textAlign: "center", marginTop: "var(--space-8)" }}>Strategies</h2>
             <div className="metrics-grid" style={{ marginBottom: "var(--space-6)" }}>
               <div>
                 <div className="metric-value">{discovered}</div>
