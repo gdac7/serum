@@ -96,6 +96,13 @@ export const runService = {
     );
   },
 
+  async getPrompts(userId: string, id: string) {
+    const run = await loadRun(userId, id);
+    return fromPython(run, (clientId, pythonRunId) =>
+      redTeamClient.getRunPrompts(clientId, pythonRunId),
+    );
+  },
+
   async getMetrics(userId: string, id: string) {
     const run = await loadRun(userId, id);
     return fromPython(run, (clientId, pythonRunId) =>

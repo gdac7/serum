@@ -3,23 +3,41 @@ import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../../shared/auth/AuthContext";
 import { runsApi } from "../../shared/api/runs";
 import { ApiError } from "../../shared/api/client";
-import type { RunResults, RunSummary } from "../../shared/types/run";
+import type { RunPrompts, RunResults, RunSummary } from "../../shared/types/run";
 
 interface TranscriptRow {
-  behavior: string;
+  phase: string;
   malicious_request: string;
   attack_prompt: string;
   target_response: string;
   score: number | null;
 }
 
-function flatten(results: RunResults | null): TranscriptRow[] {
-  if (!results?.generations) return [];
+const PHASE_LABEL: Record<string, string> = {
+  warmup: "Warm-up",
+  lifelong: "Lifelong",
+  evaluate: "Evaluate",
+};
+
+// Training phases come from /prompts; the evaluate phase is scored separately
+// and lives in /results generations. Both share the same tuple shape.
+function collectRows(prompts: RunPrompts | null, results: RunResults | null): TranscriptRow[] {
   const rows: TranscriptRow[] = [];
-  for (const [behavior, gens] of Object.entries(results.generations)) {
+  for (const phase of ["warmup", "lifelong"]) {
+    for (const p of prompts?.prompts[phase] ?? []) {
+      rows.push({
+        phase,
+        malicious_request: p.malicious_request,
+        attack_prompt: p.attack_prompt,
+        target_response: p.target_response,
+        score: p.score,
+      });
+    }
+  }
+  for (const gens of Object.values(results?.generations ?? {})) {
     for (const g of gens) {
       rows.push({
-        behavior,
+        phase: "evaluate",
         malicious_request: g.malicious_request,
         attack_prompt: g.attack_prompt,
         target_response: g.target_response,
@@ -44,17 +62,25 @@ export function RunTranscriptPage() {
   const { id = "" } = useParams();
   const { token } = useAuth();
   const [run, setRun] = useState<RunSummary | null>(null);
+  const [prompts, setPrompts] = useState<RunPrompts | null>(null);
   const [results, setResults] = useState<RunResults | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
-    Promise.all([runsApi.get(token, id), runsApi.results(token, id)])
-      .then(([r, res]) => {
+    Promise.all([
+      runsApi.get(token, id),
+      runsApi.prompts(token, id).catch(() => null),
+      runsApi.results(token, id).catch(() => null),
+    ])
+      .then(([r, p, res]) => {
         if (cancelled) return;
         setRun(r);
+        setPrompts(p);
         setResults(res);
+        setLoaded(true);
       })
       .catch((err) => {
         if (!cancelled) {
@@ -70,7 +96,7 @@ export function RunTranscriptPage() {
     };
   }, [token, id]);
 
-  const rows = useMemo(() => flatten(results), [results]);
+  const rows = useMemo(() => collectRows(prompts, results), [prompts, results]);
   const fileStem = (run?.model_name ?? "run").replace(/[^a-z0-9._-]+/gi, "_");
 
   return (
@@ -104,17 +130,15 @@ export function RunTranscriptPage() {
         </p>
 
         {error && <div className="form-error">{error}</div>}
-        {!error && !results && <p className="spinner-text">Loading…</p>}
-        {!error && results && rows.length === 0 && (
-          <p className="empty-state">
-            No scored generations — this run had no evaluate phase.
-          </p>
+        {!error && !loaded && <p className="spinner-text">Loading…</p>}
+        {!error && loaded && rows.length === 0 && (
+          <p className="empty-state">No generated prompts recorded for this run.</p>
         )}
 
         {rows.map((row, i) => (
           <div key={i} className="transcript-item">
             <div className="card-kicker" style={{ marginBottom: "var(--space-2)" }}>
-              {row.behavior}
+              {PHASE_LABEL[row.phase] ?? row.phase} · {row.malicious_request}
               {row.score !== null ? ` — score ${row.score.toFixed(2)}` : ""}
             </div>
             <div className="transcript-label">Attack prompt</div>

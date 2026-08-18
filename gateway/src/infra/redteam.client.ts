@@ -113,6 +113,27 @@ export interface RunMetricsResponse {
   metrics: HarmbenchMetrics;
 }
 
+export interface TrainingPrompt {
+  attack_id: string;
+  malicious_request: string;
+  attack_prompt: string;
+  target_response: string;
+  score: number | null;
+  score_explanation: string | null;
+  iteration_number: number;
+  strategies_used: string[];
+  strategy_source: string;
+}
+
+export interface RunPromptsResponse {
+  client_id: string;
+  run_id: string;
+  target_id: string;
+  status: RedTeamRunStatus;
+  // Grouped by training phase; keys present only for phases that ran.
+  prompts: Record<string, TrainingPrompt[]>;
+}
+
 export interface RunProgressResponse {
   run_id: string;
   status: RedTeamRunStatus;
@@ -185,6 +206,12 @@ export const redTeamClient = {
     request<RunResultsResponse>(
       "GET",
       `/v1/runs/${runId}/results?client_id=${clientId}`,
+    ),
+
+  getRunPrompts: (clientId: string, runId: string) =>
+    request<RunPromptsResponse>(
+      "GET",
+      `/v1/runs/${runId}/prompts?client_id=${clientId}`,
     ),
 
   getRunMetrics: (clientId: string, runId: string) =>
