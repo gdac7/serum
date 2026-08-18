@@ -60,7 +60,6 @@ export interface ApiFormState {
   fresh_library: boolean;
   endpoint_url: string;
   api_key: string;
-  api_key_env: string;
 }
 
 export const DEFAULT_LOCAL_FORM: LocalFormState = {
@@ -78,5 +77,4 @@ export const DEFAULT_API_FORM: ApiFormState = {
   fresh_library: false,
   endpoint_url: "",
   api_key: "",
-  api_key_env: "",
 };

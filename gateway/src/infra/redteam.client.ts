@@ -29,7 +29,8 @@ export interface TargetConfig {
   model_name: string;
   load_4_bits?: boolean;
   endpoint_url?: string;
-  api_key_env?: string;
+  // The decrypted bearer token, forwarded over the internal network only.
+  api_key?: string;
 }
 
 export interface TargetCreateResponse {

@@ -8,7 +8,6 @@ export interface TargetSummary {
   kind: TargetKind;
   model_name: string;
   endpoint_url: string | null;
-  api_key_env: string | null;
   load_4_bits: boolean;
   status: TargetStatus;
   error: string | null;
@@ -23,7 +22,6 @@ export interface RegisterTargetInput {
   load_4_bits?: boolean;
   endpoint_url?: string;
   api_key?: string;
-  api_key_env?: string;
 }
 
 export const targetsApi = {

@@ -2,7 +2,7 @@ import { HttpError } from "../domain/errors";
 import { targetRepository, TargetRow } from "../repositories/target.repository";
 import { runRepository } from "../repositories/run.repository";
 import { redTeamClient, TargetConfig } from "../infra/redteam.client";
-import { encrypt } from "../infra/crypto";
+import { encrypt, decrypt } from "../infra/crypto";
 import { ensureTargetLoaded } from "./target-loader";
 import type { RegisterTargetInput } from "../domain/dto";
 
@@ -14,7 +14,6 @@ function shapeTarget(t: TargetRow, inUse = false) {
     kind: t.kind,
     model_name: t.model_name,
     endpoint_url: t.endpoint_url,
-    api_key_env: t.api_key_env,
     load_4_bits: t.load_4_bits,
     status: t.status,
     error: t.error,
@@ -30,7 +29,7 @@ function configFromRow(t: TargetRow): TargetConfig {
         kind: "api",
         model_name: t.model_name,
         endpoint_url: t.endpoint_url ?? undefined,
-        api_key_env: t.api_key_env ?? undefined,
+        api_key: t.encrypted_api_key ? decrypt(t.encrypted_api_key) : undefined,
       }
     : { kind: "local", model_name: t.model_name, load_4_bits: t.load_4_bits };
 }
@@ -46,7 +45,6 @@ export const targetService = {
       kind: input.kind,
       modelName: input.model_name,
       endpointUrl: input.endpoint_url ?? null,
-      apiKeyEnv: input.api_key_env ?? null,
       encryptedApiKey: input.api_key ? encrypt(input.api_key) : null,
       load4Bits: input.load_4_bits,
     });

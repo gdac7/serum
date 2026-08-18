@@ -17,7 +17,6 @@ export function RegisterTargetDialog({
   const [load4Bits, setLoad4Bits] = useState(false);
   const [endpointUrl, setEndpointUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
-  const [apiKeyEnv, setApiKeyEnv] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -32,8 +31,8 @@ export function RegisterTargetDialog({
         setError("Endpoint URL must be https.");
         return;
       }
-      if (!apiKeyEnv.trim()) {
-        setError("API key env var name is required.");
+      if (!apiKey.trim()) {
+        setError("API key is required.");
         return;
       }
     }
@@ -49,8 +48,7 @@ export function RegisterTargetDialog({
               kind: "api",
               model_name: modelName.trim(),
               endpoint_url: endpointUrl.trim(),
-              api_key: apiKey || undefined,
-              api_key_env: apiKeyEnv.trim(),
+              api_key: apiKey.trim(),
             },
       );
       onRegistered(res.target_id);
@@ -124,25 +122,15 @@ export function RegisterTargetDialog({
                   onChange={(e) => setEndpointUrl(e.target.value)}
                 />
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
-                <div className="field">
-                  <label>API key</label>
-                  <input
-                    className="input"
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label>API key env var</label>
-                  <input
-                    className="input"
-                    placeholder="TARGET_API_KEY"
-                    value={apiKeyEnv}
-                    onChange={(e) => setApiKeyEnv(e.target.value)}
-                  />
-                </div>
+              <div className="field">
+                <label>API key</label>
+                <input
+                  className="input"
+                  type="password"
+                  placeholder="bearer token for your endpoint"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                />
               </div>
             </>
           )}

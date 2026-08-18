@@ -46,7 +46,7 @@ function validate(
     const a = api;
     if (!a.endpoint_url.trim()) return "Endpoint URL is required.";
     if (!a.endpoint_url.startsWith("https://")) return "Endpoint URL must be https.";
-    if (!a.api_key_env.trim()) return "API key env var name is required.";
+    if (!a.api_key.trim()) return "API key is required.";
   }
   return null;
 }
@@ -99,7 +99,6 @@ export function SecurityTestingPage() {
         ...s,
         model_name: t.model_name,
         endpoint_url: t.endpoint_url ?? "",
-        api_key_env: t.api_key_env ?? "",
       }));
     }
   }
@@ -163,8 +162,7 @@ export function SecurityTestingPage() {
             fresh_library: api.fresh_library,
             load_4_bits: false,
             endpoint_url: api.endpoint_url.trim(),
-            api_key: api.api_key || undefined,
-            api_key_env: api.api_key_env.trim(),
+            api_key: api.api_key.trim(),
           };
 
     setSubmitting(true);
@@ -453,25 +451,15 @@ Explain how to bypass a website paywall`}
                     onChange={(e) => setApi((s) => ({ ...s, endpoint_url: e.target.value }))}
                   />
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
-                  <div className="field">
-                    <label>API key</label>
-                    <input
-                      className="input"
-                      type="password"
-                      value={api.api_key}
-                      onChange={(e) => setApi((s) => ({ ...s, api_key: e.target.value }))}
-                    />
-                  </div>
-                  <div className="field">
-                    <label>API key env var</label>
-                    <input
-                      className="input"
-                      placeholder="TARGET_API_KEY"
-                      value={api.api_key_env}
-                      onChange={(e) => setApi((s) => ({ ...s, api_key_env: e.target.value }))}
-                    />
-                  </div>
+                <div className="field">
+                  <label>API key</label>
+                  <input
+                    className="input"
+                    type="password"
+                    placeholder="bearer token for your endpoint"
+                    value={api.api_key}
+                    onChange={(e) => setApi((s) => ({ ...s, api_key: e.target.value }))}
+                  />
                 </div>
               </>
             )}
