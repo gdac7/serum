@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../shared/auth/AuthContext";
 import { runsApi } from "../../shared/api/runs";
@@ -7,6 +7,7 @@ import { ApiError } from "../../shared/api/client";
 import { SegMulti } from "../../shared/components/SegMulti";
 import { APPROACH, KIND_DEFS, PHASE_OPTIONS, DEFAULT_LOCAL_FORM, DEFAULT_API_FORM } from "./kinds";
 import type { LocalFormState, ApiFormState } from "./kinds";
+import { parseDatasetFile } from "./datasetFile";
 import type { CreateRunInput, Phase, TargetKind } from "../../shared/types/run";
 
 const NEW_TARGET = "__new__";
@@ -85,6 +86,28 @@ export function SecurityTestingPage() {
   function setPhases(kind: TargetKind, phases: Phase[]) {
     if (kind === "local") setLocal((s) => ({ ...s, phases }));
     else setApi((s) => ({ ...s, phases }));
+  }
+
+  function setDataset(kind: TargetKind, dataset: string) {
+    if (kind === "local") setLocal((s) => ({ ...s, dataset }));
+    else setApi((s) => ({ ...s, dataset }));
+  }
+
+  async function onDatasetFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // let the same file be re-picked after an edit
+    if (!file) return;
+    try {
+      const requests = await parseDatasetFile(file);
+      if (requests.length === 0) {
+        setError("no malicious requests found in that file");
+        return;
+      }
+      setDataset(selectedKind, requests.join("\n"));
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? `couldn't read that file: ${err.message}` : "couldn't read that file");
+    }
   }
 
   async function runTest() {
@@ -233,7 +256,18 @@ export function SecurityTestingPage() {
             </div>
 
             <div className="field">
-              <label>Dataset</label>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <label>Dataset</label>
+                <label className="btn btn-secondary" style={{ cursor: "pointer", fontSize: 12, padding: "2px 10px" }}>
+                  Upload JSON / CSV
+                  <input
+                    type="file"
+                    accept=".json,.jsonl,.csv,application/json,text/csv"
+                    hidden
+                    onChange={onDatasetFile}
+                  />
+                </label>
+              </div>
               <textarea
                 className="input"
                 rows={4}
@@ -245,6 +279,14 @@ export function SecurityTestingPage() {
                     : setApi((s) => ({ ...s, dataset: e.target.value }))
                 }
               />
+              <div className="form-hint">
+                One malicious request per line
+                {(() => {
+                  const n = parseDataset(selectedKind === "local" ? local.dataset : api.dataset).length;
+                  return n > 0 ? ` · ${n} loaded` : "";
+                })()}
+                . Uploading a JSON array/CSV pulls its request column into the box.
+              </div>
             </div>
 
             <label
