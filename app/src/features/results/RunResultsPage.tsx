@@ -220,14 +220,14 @@ export function RunResultsPage() {
                       </select>
                     </div>
                     <div className="transcript-item">
-                      {selected.example.malicious_request && (
-                        <>
-                          <div className="transcript-label">Malicious request</div>
-                          <div className="transcript-text" style={{ marginBottom: "var(--space-3)" }}>
-                            {selected.example.malicious_request}
-                          </div>
-                        </>
-                      )}
+                      <div className="transcript-label">Malicious request</div>
+                      <div className="transcript-text" style={{ marginBottom: "var(--space-3)" }}>
+                        {selected.example.malicious_request || (
+                          <span className="text-muted">
+                            not recorded — discovered before the request was tracked
+                          </span>
+                        )}
+                      </div>
                       <div className="transcript-label">Weaker attempt</div>
                       <div className="transcript-text">{selected.example.example_prompt_pi}</div>
                       <div
