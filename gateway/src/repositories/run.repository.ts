@@ -20,6 +20,8 @@ export interface RunRow {
   error: string | null;
   created_at: Date;
   updated_at: Date;
+  started_at: Date | null;
+  ended_at: Date | null;
 }
 
 export interface NewRun {
@@ -90,7 +92,12 @@ export const runRepository = {
 
   async setStatus(id: string, status: string): Promise<void> {
     await pool.query(
-      "UPDATE runs SET status = $2, updated_at = now() WHERE id = $1",
+      `UPDATE runs SET
+         status = $2,
+         started_at = CASE WHEN $2 = 'running' THEN COALESCE(started_at, now()) ELSE started_at END,
+         ended_at = CASE WHEN $2 IN ('completed', 'failed') THEN COALESCE(ended_at, now()) ELSE ended_at END,
+         updated_at = now()
+       WHERE id = $1`,
       [id, status],
     );
   },
@@ -111,7 +118,9 @@ export const runRepository = {
 
   async setError(id: string, error: string): Promise<void> {
     await pool.query(
-      "UPDATE runs SET status = 'failed', error = $2, updated_at = now() WHERE id = $1",
+      `UPDATE runs SET status = 'failed', error = $2,
+         ended_at = COALESCE(ended_at, now()), updated_at = now()
+       WHERE id = $1`,
       [id, error],
     );
   },

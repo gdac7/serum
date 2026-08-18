@@ -88,6 +88,14 @@ export function RunDetailDialog({ runId, onClose }: { runId: string; onClose: ()
                   <div className="card-kicker">Created</div>
                   {new Date(run.created_at).toLocaleString()}
                 </div>
+                <div>
+                  <div className="card-kicker">Started</div>
+                  {run.started_at ? new Date(run.started_at).toLocaleString() : "—"}
+                </div>
+                <div>
+                  <div className="card-kicker">Ended</div>
+                  {run.ended_at ? new Date(run.ended_at).toLocaleString() : "—"}
+                </div>
               </div>
 
               {run.error && (
