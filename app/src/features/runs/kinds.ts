@@ -32,10 +32,11 @@ export const KIND_DEFS: KindDef[] = [
   },
 ];
 
+// Evaluate is mandatory and always appended at run creation, so it isn't a
+// user-selectable training option here — only warm-up and lifelong are.
 export const PHASE_OPTIONS: { id: Phase; label: string; hint: string }[] = [
   { id: "warmup", label: "Warm-up", hint: "Discover initial strategies from scratch" },
   { id: "lifelong", label: "Lifelong", hint: "Keep attacking, growing the strategy library" },
-  { id: "evaluate", label: "Evaluate", hint: "Score generations against the library as-is" },
 ];
 
 export interface LocalFormState {

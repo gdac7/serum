@@ -20,6 +20,13 @@ function parseDataset(text: string): string[] {
     .filter(Boolean);
 }
 
+// The user picks training phases; evaluate is mandatory and always runs last.
+function withEvaluate(training: Phase[]): Phase[] {
+  const order: Phase[] = ["warmup", "lifelong", "evaluate"];
+  const chosen = new Set<Phase>([...training, "evaluate"]);
+  return order.filter((p) => chosen.has(p));
+}
+
 function validate(
   kind: TargetKind,
   local: LocalFormState,
@@ -28,7 +35,7 @@ function validate(
 ): string | null {
   const form = kind === "local" ? local : api;
   if (!form.model_name.trim()) return "Model name is required.";
-  if (form.phases.length === 0) return "Select at least one phase.";
+  if (form.phases.length === 0) return "Select at least one training phase.";
   if (datasetSource === "custom" && parseDataset(form.dataset).length === 0) {
     return "Add at least one dataset entry.";
   }
@@ -140,7 +147,7 @@ export function SecurityTestingPage() {
         ? {
             kind: "local",
             model_name: local.model_name.trim(),
-            phases: local.phases,
+            phases: withEvaluate(local.phases),
             ...datasetFields,
             fresh_library: local.fresh_library,
             load_4_bits: local.load_4_bits,
@@ -148,7 +155,7 @@ export function SecurityTestingPage() {
         : {
             kind: "api",
             model_name: api.model_name.trim(),
-            phases: api.phases,
+            phases: withEvaluate(api.phases),
             ...datasetFields,
             fresh_library: api.fresh_library,
             load_4_bits: false,
@@ -255,7 +262,7 @@ export function SecurityTestingPage() {
             </div>
 
             <div className="field">
-              <label>Phases</label>
+              <label>Training phases</label>
               <SegMulti
                 name="phases"
                 options={PHASE_OPTIONS.map(({ id, label }) => ({ id, label }))}
@@ -263,11 +270,12 @@ export function SecurityTestingPage() {
                 onChange={(next) => setPhases(selectedKind, next)}
               />
               <div className="form-hint">
-                {PHASE_OPTIONS.filter((p) =>
+                {(PHASE_OPTIONS.filter((p) =>
                   (selectedKind === "local" ? local.phases : api.phases).includes(p.id),
                 )
                   .map((p) => p.hint)
-                  .join(" · ") || "Select at least one phase."}
+                  .join(" · ") || "Select at least one training phase.") +
+                  " · Evaluate always runs at the end."}
               </div>
             </div>
 
