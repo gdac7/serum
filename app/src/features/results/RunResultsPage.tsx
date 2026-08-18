@@ -33,6 +33,7 @@ export function RunResultsPage() {
   const [results, setResults] = useState<RunResults | null>(null);
   const [progress, setProgress] = useState<RunProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedName, setSelectedName] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -119,6 +120,7 @@ export function RunResultsPage() {
     () => [...grouped].sort((a, b) => b.usage_count - a.usage_count).slice(0, 5),
     [grouped],
   );
+  const selected = grouped.find((s) => s.name === selectedName) ?? mostEffective;
 
   return (
     <main style={{ flex: 1, overflowY: "auto" }}>
@@ -201,19 +203,38 @@ export function RunResultsPage() {
               <p className="empty-state">No strategies in this target's library yet.</p>
             ) : (
               <>
-                {mostEffective && (
+                {selected && (
                   <>
-                    <div className="card-kicker" style={{ marginBottom: "var(--space-2)" }}>
-                      Most effective — {mostEffective.name} (avg{" "}
-                      {mostEffective.average_score.toFixed(2)})
+                    <div className="field">
+                      <label>Strategy example</label>
+                      <select
+                        className="input"
+                        value={selected.name}
+                        onChange={(e) => setSelectedName(e.target.value)}
+                      >
+                        {grouped.map((s) => (
+                          <option key={s.name} value={s.name}>
+                            {s.name} — avg {s.average_score.toFixed(2)}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <div className="transcript-item">
-                      <div className="transcript-label">Attack Pi (weaker attempt)</div>
-                      <div className="transcript-text">{mostEffective.example.example_prompt_pi}</div>
-                      <div className="transcript-label" style={{ marginTop: "var(--space-2)" }}>
-                        Attack Pj (stronger attempt)
+                      <div className="transcript-label">Weaker attempt</div>
+                      <div className="transcript-text">{selected.example.example_prompt_pi}</div>
+                      <div
+                        style={{
+                          textAlign: "center",
+                          margin: "var(--space-3) 0",
+                          opacity: 0.8,
+                        }}
+                      >
+                        <div style={{ fontSize: 22, lineHeight: 1 }}>↓</div>
+                        <div className="card-kicker">apply strategy: {selected.name}</div>
+                        <div style={{ fontSize: 22, lineHeight: 1 }}>↓</div>
                       </div>
-                      <div className="transcript-text">{mostEffective.example.example_prompt_pj}</div>
+                      <div className="transcript-label">Stronger attempt</div>
+                      <div className="transcript-text">{selected.example.example_prompt_pj}</div>
                     </div>
                   </>
                 )}
