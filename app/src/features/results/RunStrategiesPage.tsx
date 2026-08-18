@@ -54,7 +54,7 @@ function StrategyCard({ s }: { s: StrategyProgress }) {
   );
 }
 
-const PAGE_SIZE = 9;
+const PAGE_SIZE = 3;
 
 export function RunStrategiesPage() {
   const { id = "" } = useParams();
@@ -145,8 +145,9 @@ export function RunStrategiesPage() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: "var(--space-4)",
-              marginTop: "var(--space-4)",
+              gap: "var(--space-2)",
+              marginTop: "var(--space-5)",
+              flexWrap: "wrap",
             }}
           >
             <button
@@ -155,18 +156,25 @@ export function RunStrategiesPage() {
               disabled={current === 0}
               onClick={() => setPage(current - 1)}
             >
-              Previous
+              ←
             </button>
-            <span className="text-muted">
-              Page {current + 1} of {pageCount}
-            </span>
+            {Array.from({ length: pageCount }, (_, i) => (
+              <button
+                key={i}
+                type="button"
+                className={`btn ${i === current ? "btn-primary" : "btn-secondary"}`}
+                onClick={() => setPage(i)}
+              >
+                {i + 1}
+              </button>
+            ))}
             <button
               type="button"
               className="btn btn-secondary"
               disabled={current >= pageCount - 1}
               onClick={() => setPage(current + 1)}
             >
-              Next
+              →
             </button>
           </div>
         )}
