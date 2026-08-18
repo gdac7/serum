@@ -82,6 +82,18 @@ export const runRepository = {
     return rows;
   },
 
+  // Python target ids the user currently has a non-terminal run against; a
+  // target in this set is busy (the run holds the GPU) and can't be chatted.
+  async activeTargetIds(userId: string): Promise<string[]> {
+    const { rows } = await pool.query<{ target_id: string }>(
+      `SELECT DISTINCT target_id FROM runs
+       WHERE user_id = $1 AND target_id IS NOT NULL
+         AND status NOT IN ('completed', 'failed')`,
+      [userId],
+    );
+    return rows.map((r) => r.target_id);
+  },
+
   async findByIdForUser(id: string, userId: string): Promise<RunRow | null> {
     const { rows } = await pool.query<RunRow>(
       "SELECT * FROM runs WHERE id = $1 AND user_id = $2",

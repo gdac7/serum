@@ -12,6 +12,7 @@ export interface TargetSummary {
   load_4_bits: boolean;
   status: TargetStatus;
   error: string | null;
+  in_use: boolean;
   created_at: string;
   updated_at: string;
 }

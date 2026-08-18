@@ -109,9 +109,8 @@ export function RunDetailDialog({ runId, onClose }: { runId: string; onClose: ()
 
               {run.status !== "completed" && !run.error && (
                 <p style={{ opacity: 0.7, fontSize: 13 }}>
-                  This run is {run.status}. Full results appear once it completes — see{" "}
-                  <Link to={`/chat?run=${run.node_run_id}`}>Chat</Link> to probe the target manually
-                  in the meantime.
+                  This run is {run.status}. Full results appear once it completes. The target is busy
+                  with the run, so <Link to="/chat">Chat</Link> with it is paused until it finishes.
                 </p>
               )}
 

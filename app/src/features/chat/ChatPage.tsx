@@ -51,7 +51,10 @@ export function ChatPage() {
   // progress — so its sidebar subtitle and chat readiness stay current.
   useEffect(() => {
     if (!token || !targets) return;
-    const pending = targets.filter((t) => t.status === "queued" || t.status === "loading");
+    // Also poll in-use targets so the "in a test" flag clears once the run ends.
+    const pending = targets.filter(
+      (t) => t.status === "queued" || t.status === "loading" || t.in_use,
+    );
     if (pending.length === 0) return;
 
     const timer = setInterval(() => {
@@ -75,6 +78,7 @@ export function ChatPage() {
     [targets, activeId],
   );
   const activeMessages = activeId ? messagesByTarget[activeId] ?? [] : [];
+  const chatBlocked = activeTarget?.in_use ?? false;
 
   function selectTarget(id: string) {
     abortRef.current?.abort();
@@ -104,7 +108,7 @@ export function ChatPage() {
 
   async function sendMessage() {
     const text = draft.trim();
-    if (!text || !activeId || !token || sending) return;
+    if (!text || !activeId || !token || sending || chatBlocked) return;
 
     setDraft("");
     appendMessage(activeId, { sender: "You", text });
@@ -181,7 +185,7 @@ export function ChatPage() {
             >
               <div className="list-item-title">{t.model_name}</div>
               <div className="list-item-subtitle">
-                {t.kind} · {t.status}
+                {t.kind} · {t.in_use ? "in a test" : t.status}
               </div>
             </button>
           ))}
@@ -232,7 +236,13 @@ export function ChatPage() {
               </p>
             </div>
           ))}
-          {activeId && activeMessages.length === 0 && (
+          {chatBlocked && (
+            <div className="form-error">
+              {activeTarget?.model_name} is running a security test right now. Chat is paused until
+              the run finishes — it frees up automatically.
+            </div>
+          )}
+          {activeId && !chatBlocked && activeMessages.length === 0 && (
             <p style={{ opacity: 0.55 }}>
               Send a message to test this model. Loading it may take a minute the first time.
             </p>
@@ -253,9 +263,9 @@ export function ChatPage() {
             className="input"
             rows={2}
             style={{ flex: 1, resize: "none" }}
-            placeholder="Message the model…"
+            placeholder={chatBlocked ? "Chat paused — target is running a test…" : "Message the model…"}
             value={draft}
-            disabled={!activeId || sending}
+            disabled={!activeId || sending || chatBlocked}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onComposerKeyDown}
           />
@@ -263,7 +273,7 @@ export function ChatPage() {
             type="button"
             className="btn btn-primary btn-icon"
             aria-label="Send"
-            disabled={!activeId || !draft.trim() || sending}
+            disabled={!activeId || !draft.trim() || sending || chatBlocked}
             onClick={sendMessage}
           >
             <IconSend />
