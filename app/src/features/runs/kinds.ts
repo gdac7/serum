@@ -32,6 +32,12 @@ export const KIND_DEFS: KindDef[] = [
   },
 ];
 
+// Local targets are limited to models the service has weights for.
+export const LOCAL_MODELS = [
+  "meta-llama/Llama-3.1-8B-Instruct",
+  "Qwen/Qwen2.5-7B-Instruct",
+];
+
 // Evaluate is mandatory and always appended at run creation, so it isn't a
 // user-selectable training option here — only warm-up and lifelong are.
 export const PHASE_OPTIONS: { id: Phase; label: string; hint: string }[] = [
