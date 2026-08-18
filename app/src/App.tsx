@@ -5,6 +5,7 @@ import { LoginPage } from "./features/auth/LoginPage";
 import { ChatPage } from "./features/chat/ChatPage";
 import { SecurityTestingPage } from "./features/runs/SecurityTestingPage";
 import { ResultsPage } from "./features/results/ResultsPage";
+import { TargetsPage } from "./features/targets/TargetsPage";
 
 function LoginRoute() {
   const { token } = useAuth();
@@ -21,6 +22,7 @@ export function App() {
           <Route element={<ProtectedLayout />}>
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/security-testing" element={<SecurityTestingPage />} />
+            <Route path="/targets" element={<TargetsPage />} />
             <Route path="/results" element={<ResultsPage />} />
             <Route path="/" element={<Navigate to="/chat" replace />} />
           </Route>

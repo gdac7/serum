@@ -11,6 +11,7 @@ export function Nav() {
       <span className="nav-brand">Serum</span>
       <NavLink to="/chat">Chat</NavLink>
       <NavLink to="/security-testing">Security Testing</NavLink>
+      <NavLink to="/targets">Targets</NavLink>
       <NavLink to="/results">Results</NavLink>
       <button
         type="button"
