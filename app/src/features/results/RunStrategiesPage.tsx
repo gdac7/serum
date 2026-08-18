@@ -54,7 +54,7 @@ function StrategyCard({ s }: { s: StrategyProgress }) {
   );
 }
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 9;
 
 export function RunStrategiesPage() {
   const { id = "" } = useParams();
@@ -94,7 +94,7 @@ export function RunStrategiesPage() {
 
   return (
     <main style={{ flex: 1, overflowY: "auto" }}>
-      <div style={{ maxWidth: 820, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
+      <div style={{ maxWidth: 1120, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
         <Link to={`/results/${id}`} className="text-muted">
           ← Back to results
         </Link>
@@ -126,9 +126,18 @@ export function RunStrategiesPage() {
           <p className="empty-state">No strategies in this target's library yet.</p>
         )}
 
-        {visible.map((s) => (
-          <StrategyCard key={s.strategy_id} s={s} />
-        ))}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+            gap: "var(--space-4)",
+            alignItems: "start",
+          }}
+        >
+          {visible.map((s) => (
+            <StrategyCard key={s.strategy_id} s={s} />
+          ))}
+        </div>
 
         {pageCount > 1 && (
           <div
