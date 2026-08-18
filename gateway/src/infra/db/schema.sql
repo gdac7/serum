@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- Gateway-side mirror of a run Python owns; status is the coarse client-facing view.
 CREATE TABLE IF NOT EXISTS runs (
     id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id       uuid NOT NULL REFERENCES users (id),
+    user_id       uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     python_run_id uuid,
     target_id     uuid,
     status        text NOT NULL DEFAULT 'queued',
@@ -34,7 +34,7 @@ ALTER TABLE runs ADD COLUMN IF NOT EXISTS encrypted_api_key text;
 -- POST /runs. Lets a user probe a model in Chat without starting a real test.
 CREATE TABLE IF NOT EXISTS targets (
     id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id           uuid NOT NULL REFERENCES users (id),
+    user_id           uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     kind              text NOT NULL DEFAULT 'local',
     model_name        text NOT NULL,
     endpoint_url      text,
@@ -49,3 +49,12 @@ CREATE TABLE IF NOT EXISTS targets (
 );
 
 CREATE INDEX IF NOT EXISTS targets_user_id_idx ON targets (user_id);
+
+-- CREATE IF NOT EXISTS can't alter an existing table's constraint; re-run safe.
+ALTER TABLE runs DROP CONSTRAINT IF EXISTS runs_user_id_fkey;
+ALTER TABLE runs ADD CONSTRAINT runs_user_id_fkey
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
+
+ALTER TABLE targets DROP CONSTRAINT IF EXISTS targets_user_id_fkey;
+ALTER TABLE targets ADD CONSTRAINT targets_user_id_fkey
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
