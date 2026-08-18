@@ -184,7 +184,14 @@ export function RunResultsPage() {
             </button>
 
             <h2 style={{ textAlign: "center", marginTop: "var(--space-8)" }}>Strategies</h2>
-            <div className="metrics-grid" style={{ marginBottom: "var(--space-6)" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                textAlign: "center",
+                marginBottom: "var(--space-6)",
+              }}
+            >
               <div>
                 <div className="metric-value">{discovered}</div>
                 <div className="metric-label">Strategies discovered</div>
