@@ -121,6 +121,8 @@ export async function processRun(job: Job<RunJobData>): Promise<void> {
         target_id: target.target_id,
         phases: run.phases,
         dataset: run.dataset,
+        standard_dataset: run.standard_dataset ?? undefined,
+        standard_dataset_percent: run.standard_dataset_percent ?? undefined,
         fresh_library: run.fresh_library,
       });
       pythonRunId = started.run_id;

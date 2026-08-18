@@ -18,6 +18,8 @@ export interface RunSummary {
   target_kind: TargetKind;
   endpoint_url: string | null;
   api_key_env: string | null;
+  standard_dataset: string | null;
+  standard_dataset_percent: number | null;
   error: string | null;
   created_at: string;
   updated_at: string;
@@ -61,6 +63,8 @@ export interface CreateRunInput {
   model_name: string;
   phases: Phase[];
   dataset: string[];
+  standard_dataset?: "harmbench";
+  standard_dataset_percent?: number;
   fresh_library: boolean;
   load_4_bits: boolean;
   endpoint_url?: string;

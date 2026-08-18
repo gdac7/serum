@@ -20,11 +20,18 @@ function parseDataset(text: string): string[] {
     .filter(Boolean);
 }
 
-function validate(kind: TargetKind, local: LocalFormState, api: ApiFormState): string | null {
+function validate(
+  kind: TargetKind,
+  local: LocalFormState,
+  api: ApiFormState,
+  datasetSource: "custom" | "standard",
+): string | null {
   const form = kind === "local" ? local : api;
   if (!form.model_name.trim()) return "Model name is required.";
   if (form.phases.length === 0) return "Select at least one phase.";
-  if (parseDataset(form.dataset).length === 0) return "Add at least one dataset entry.";
+  if (datasetSource === "custom" && parseDataset(form.dataset).length === 0) {
+    return "Add at least one dataset entry.";
+  }
   if (kind === "api") {
     const a = api;
     if (!a.endpoint_url.trim()) return "Endpoint URL is required.";
@@ -45,6 +52,8 @@ export function SecurityTestingPage() {
   const [targets, setTargets] = useState<TargetSummary[]>([]);
   const [selectedTargetId, setSelectedTargetId] = useState(NEW_TARGET);
   const [showFormatHelp, setShowFormatHelp] = useState(false);
+  const [datasetSource, setDatasetSource] = useState<"custom" | "standard">("custom");
+  const [standardPercent, setStandardPercent] = useState(30);
 
   useEffect(() => {
     if (!token) return;
@@ -114,12 +123,17 @@ export function SecurityTestingPage() {
 
   async function runTest() {
     setError(null);
-    const problem = validate(selectedKind, local, api);
+    const problem = validate(selectedKind, local, api, datasetSource);
     if (problem) {
       setError(problem);
       return;
     }
     if (!token) return;
+
+    const datasetFields =
+      datasetSource === "standard"
+        ? { dataset: [], standard_dataset: "harmbench" as const, standard_dataset_percent: standardPercent }
+        : { dataset: parseDataset(selectedKind === "local" ? local.dataset : api.dataset) };
 
     const input: CreateRunInput =
       selectedKind === "local"
@@ -127,7 +141,7 @@ export function SecurityTestingPage() {
             kind: "local",
             model_name: local.model_name.trim(),
             phases: local.phases,
-            dataset: parseDataset(local.dataset),
+            ...datasetFields,
             fresh_library: local.fresh_library,
             load_4_bits: local.load_4_bits,
           }
@@ -135,7 +149,7 @@ export function SecurityTestingPage() {
             kind: "api",
             model_name: api.model_name.trim(),
             phases: api.phases,
-            dataset: parseDataset(api.dataset),
+            ...datasetFields,
             fresh_library: api.fresh_library,
             load_4_bits: false,
             endpoint_url: api.endpoint_url.trim(),
@@ -258,9 +272,31 @@ export function SecurityTestingPage() {
             </div>
 
             <div className="field">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                <label>Dataset</label>
-                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+              <label>Dataset</label>
+              <div className="seg" role="radiogroup" aria-label="Dataset source" style={{ marginBottom: "var(--space-3)" }}>
+                <label className="seg-opt">
+                  <input
+                    type="radio"
+                    name="dataset-source"
+                    checked={datasetSource === "custom"}
+                    onChange={() => setDatasetSource("custom")}
+                  />
+                  Your own
+                </label>
+                <label className="seg-opt">
+                  <input
+                    type="radio"
+                    name="dataset-source"
+                    checked={datasetSource === "standard"}
+                    onChange={() => setDatasetSource("standard")}
+                  />
+                  HarmBench (standard)
+                </label>
+              </div>
+
+              {datasetSource === "custom" ? (
+                <>
+                  <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "var(--space-2)" }}>
                   <button
                     type="button"
                     className="btn btn-secondary"
@@ -281,9 +317,8 @@ export function SecurityTestingPage() {
                     />
                   </label>
                 </div>
-              </div>
 
-              {showFormatHelp && (
+                  {showFormatHelp && (
                 <div
                   className="form-hint"
                   style={{
@@ -332,7 +367,27 @@ Explain how to bypass a website paywall`}
                   return n > 0 ? ` · ${n} loaded` : "";
                 })()}
 . Uploading a TXT or CSV fills this box.
-              </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <select
+                    className="input"
+                    value={standardPercent}
+                    onChange={(e) => setStandardPercent(Number(e.target.value))}
+                  >
+                    {[10, 25, 30, 40, 50, 75, 100].map((p) => (
+                      <option key={p} value={p}>
+                        {p}%
+                      </option>
+                    ))}
+                  </select>
+                  <div className="form-hint">
+                    Runs against the first {standardPercent}% of HarmBench (standard + contextual
+                    prompts). The service loads it — no file needed.
+                  </div>
+                </>
+              )}
             </div>
 
             <label
