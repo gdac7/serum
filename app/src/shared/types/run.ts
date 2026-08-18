@@ -60,9 +60,29 @@ export interface RunResults {
   metrics: HarmbenchMetrics | null;
 }
 
+export interface TrainingPrompt {
+  attack_id: string;
+  malicious_request: string;
+  attack_prompt: string;
+  target_response: string;
+  score: number | null;
+  score_explanation: string | null;
+  iteration_number: number;
+  strategies_used: string[];
+  strategy_source: string;
+}
+
+export interface RunPrompts {
+  run_id: string;
+  status: CoarseStatus;
+  // Grouped by training phase; keys present only for phases that ran.
+  prompts: Record<string, TrainingPrompt[]>;
+}
+
 export interface StrategyProgress {
   strategy_id: string;
   name: string;
+  malicious_request: string;
   category: string;
   success_rate: number;
   average_score: number;

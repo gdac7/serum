@@ -52,6 +52,14 @@ runsRouter.get("/runs/:id/results", requireAuth, async (req, res, next) => {
   }
 });
 
+runsRouter.get("/runs/:id/prompts", requireAuth, async (req, res, next) => {
+  try {
+    res.json(await runService.getPrompts(req.user!.id, req.params.id));
+  } catch (err) {
+    next(err);
+  }
+});
+
 runsRouter.get("/runs/:id/metrics", requireAuth, async (req, res, next) => {
   try {
     res.json(await runService.getMetrics(req.user!.id, req.params.id));
