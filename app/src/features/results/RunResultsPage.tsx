@@ -27,18 +27,18 @@ function topAttacks(results: RunResults | null): ScoredGeneration[] {
   return scored.sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 5);
 }
 
-function averageGenerationScore(results: RunResults | null): number | null {
-  if (!results) return null;
-  const scores: number[] = [];
-  for (const gens of Object.values(results.generations ?? {})) {
-    for (const g of gens) if (g.score !== null) scores.push(g.score);
-  }
-  if (scores.length > 0) return scores.reduce((a, b) => a + b, 0) / scores.length;
+const PHASE_ORDER = ["warmup", "lifelong", "evaluate"];
+const PHASE_LABEL: Record<string, string> = {
+  warmup: "Warm-up",
+  lifelong: "Lifelong",
+  evaluate: "Evaluate",
+};
 
-  // No evaluate generations — fall back to the mean of the phase averages.
-  const phaseAvgs = Object.values(results.phases).map((p) => p.average_score);
-  if (phaseAvgs.length === 0) return null;
-  return phaseAvgs.reduce((a, b) => a + b, 0) / phaseAvgs.length;
+function orderedPhases(results: RunResults | null): [string, RunResults["phases"][string]][] {
+  if (!results) return [];
+  return Object.entries(results.phases).sort(
+    (a, b) => PHASE_ORDER.indexOf(a[0]) - PHASE_ORDER.indexOf(b[0]),
+  );
 }
 
 export function RunResultsPage() {
@@ -79,7 +79,7 @@ export function RunResultsPage() {
   }, [token, id]);
 
   const attacks = useMemo(() => topAttacks(results), [results]);
-  const avgScore = useMemo(() => averageGenerationScore(results), [results]);
+  const phases = useMemo(() => orderedPhases(results), [results]);
 
   const strategies = progress?.strategies ?? [];
   const discovered = progress?.discovered_this_run ?? strategies.length;
@@ -156,20 +156,42 @@ export function RunResultsPage() {
         {results && (
           <>
             <h2>Attack prompts</h2>
-            <div className="metrics-grid" style={{ marginBottom: "var(--space-6)" }}>
-              <div>
-                <div className="metric-value">{avgScore !== null ? avgScore.toFixed(2) : "—"}</div>
-                <div className="metric-label">Average score</div>
-              </div>
-              {results.metrics && (
+            {results.metrics && (
+              <div className="metrics-grid" style={{ marginBottom: "var(--space-6)" }}>
                 <div>
                   <div className="metric-value">{(results.metrics.asr * 100).toFixed(0)}%</div>
                   <div className="metric-label">Attack success</div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            <h3>Most effective attack prompts</h3>
+            <h3>Average score by phase</h3>
+            {phases.length === 0 ? (
+              <p className="empty-state">No phase summaries for this run.</p>
+            ) : (
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Phase</th>
+                    <th>Avg score</th>
+                    <th>Attacks</th>
+                    <th>Successful</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {phases.map(([name, p]) => (
+                    <tr key={name}>
+                      <td>{PHASE_LABEL[name] ?? name}</td>
+                      <td>{p.average_score.toFixed(2)}</td>
+                      <td>{p.total_attacks}</td>
+                      <td>{p.successful_attacks}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            <h3 style={{ marginTop: "var(--space-5)" }}>Most effective attack prompts</h3>
             {attacks.length === 0 ? (
               <p className="empty-state">
                 No scored generations — this run had no evaluate phase.
@@ -189,16 +211,14 @@ export function RunResultsPage() {
               ))
             )}
 
-            {attacks.length > 0 && (
-              <button
-                type="button"
-                className="btn btn-secondary"
-                style={{ marginTop: "var(--space-3)" }}
-                onClick={() => navigate(`/results/${id}/transcript`)}
-              >
-                Show attack prompts and target responses
-              </button>
-            )}
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ marginTop: "var(--space-3)" }}
+              onClick={() => navigate(`/results/${id}/transcript`)}
+            >
+              Show attack prompts and target responses
+            </button>
 
             <div className="hr" style={{ margin: "var(--space-6) 0" }} />
 
