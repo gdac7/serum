@@ -80,7 +80,9 @@ export function RunDetailDialog({ runId, onClose }: { runId: string; onClose: ()
                 </div>
                 <div>
                   <div className="card-kicker">Dataset</div>
-                  {run.dataset.length} request{run.dataset.length === 1 ? "" : "s"}
+                  {run.standard_dataset
+                    ? `${run.standard_dataset} · ${run.standard_dataset_percent}%`
+                    : `${run.dataset.length} request${run.dataset.length === 1 ? "" : "s"}`}
                 </div>
                 <div>
                   <div className="card-kicker">Created</div>

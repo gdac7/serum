@@ -51,6 +51,8 @@ export interface StartRunBody {
   target_id: string;
   phases: string[];
   dataset: string[];
+  standard_dataset?: string;
+  standard_dataset_percent?: number;
   fresh_library: boolean;
 }
 

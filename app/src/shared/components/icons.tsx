@@ -38,6 +38,16 @@ export function IconUser(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function IconInfo(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg width="14" height="14" {...base} {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4" />
+      <path d="M12 8h.01" />
+    </svg>
+  );
+}
+
 export function IconArrowRight(props: SVGProps<SVGSVGElement>) {
   return (
     <svg width="14" height="14" {...base} {...props}>

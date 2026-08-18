@@ -17,6 +17,8 @@ function shapeRun(run: RunRow) {
     target_kind: run.target_kind,
     endpoint_url: run.endpoint_url,
     api_key_env: run.api_key_env,
+    standard_dataset: run.standard_dataset,
+    standard_dataset_percent: run.standard_dataset_percent,
     error: run.error,
     created_at: run.created_at,
     updated_at: run.updated_at,
@@ -63,6 +65,8 @@ export const runService = {
       endpointUrl: input.endpoint_url ?? null,
       apiKeyEnv: input.api_key_env ?? null,
       encryptedApiKey: input.api_key ? encrypt(input.api_key) : null,
+      standardDataset: input.standard_dataset ?? null,
+      standardDatasetPercent: input.standard_dataset_percent ?? null,
     });
 
     await runsQueue.add(

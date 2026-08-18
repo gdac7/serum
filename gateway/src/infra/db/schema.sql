@@ -28,6 +28,8 @@ ALTER TABLE runs ADD COLUMN IF NOT EXISTS target_kind text NOT NULL DEFAULT 'loc
 ALTER TABLE runs ADD COLUMN IF NOT EXISTS endpoint_url text;
 ALTER TABLE runs ADD COLUMN IF NOT EXISTS api_key_env text;
 ALTER TABLE runs ADD COLUMN IF NOT EXISTS encrypted_api_key text;
+ALTER TABLE runs ADD COLUMN IF NOT EXISTS standard_dataset text;
+ALTER TABLE runs ADD COLUMN IF NOT EXISTS standard_dataset_percent integer;
 
 -- A target registered (and loaded on the Python service) with no attack
 -- attached, unlike a run's target which only ever exists as a side effect of
