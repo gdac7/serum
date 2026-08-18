@@ -65,6 +65,7 @@ export function RunTranscriptPage() {
   const [prompts, setPrompts] = useState<RunPrompts | null>(null);
   const [results, setResults] = useState<RunResults | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [promptsError, setPromptsError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -72,7 +73,10 @@ export function RunTranscriptPage() {
     let cancelled = false;
     Promise.all([
       runsApi.get(token, id),
-      runsApi.prompts(token, id).catch(() => null),
+      runsApi.prompts(token, id).catch((e) => {
+        if (!cancelled) setPromptsError(e instanceof ApiError ? `${e.status}: ${e.message}` : String(e));
+        return null;
+      }),
       runsApi.results(token, id).catch(() => null),
     ])
       .then(([r, p, res]) => {
@@ -131,8 +135,15 @@ export function RunTranscriptPage() {
 
         {error && <div className="form-error">{error}</div>}
         {!error && !loaded && <p className="spinner-text">Loading…</p>}
-        {!error && loaded && rows.length === 0 && (
-          <p className="empty-state">No generated prompts recorded for this run.</p>
+        {!error && loaded && rows.length === 0 && promptsError && (
+          <div className="form-error">Couldn't load prompts — {promptsError}</div>
+        )}
+        {!error && loaded && rows.length === 0 && !promptsError && (
+          <p className="empty-state">
+            No generated prompts recorded for this run. Training prompts are only
+            captured for runs completed after the service was updated — start a new
+            run to populate them.
+          </p>
         )}
 
         {rows.map((row, i) => (
