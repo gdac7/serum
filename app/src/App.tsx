@@ -26,8 +26,8 @@ export function App() {
             <Route path="/security-testing" element={<SecurityTestingPage />} />
             <Route path="/targets" element={<TargetsPage />} />
             <Route path="/results" element={<ResultsPage />} />
-            <Route path="/runs/:id/monitor" element={<MonitorPage />} />
-            <Route path="/runs/:id/results" element={<RunResultsPage />} />
+            <Route path="/results/:id/monitor" element={<MonitorPage />} />
+            <Route path="/results/:id" element={<RunResultsPage />} />
             <Route path="/" element={<Navigate to="/chat" replace />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
