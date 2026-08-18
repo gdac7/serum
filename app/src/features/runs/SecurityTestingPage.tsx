@@ -5,6 +5,7 @@ import { runsApi } from "../../shared/api/runs";
 import { targetsApi, type TargetSummary } from "../../shared/api/targets";
 import { ApiError } from "../../shared/api/client";
 import { SegMulti } from "../../shared/components/SegMulti";
+import { IconInfo } from "../../shared/components/icons";
 import { APPROACH, KIND_DEFS, PHASE_OPTIONS, DEFAULT_LOCAL_FORM, DEFAULT_API_FORM } from "./kinds";
 import type { LocalFormState, ApiFormState } from "./kinds";
 import { parseDatasetFile } from "./datasetFile";
@@ -43,6 +44,7 @@ export function SecurityTestingPage() {
   const [createdRunId, setCreatedRunId] = useState<string | null>(null);
   const [targets, setTargets] = useState<TargetSummary[]>([]);
   const [selectedTargetId, setSelectedTargetId] = useState(NEW_TARGET);
+  const [showFormatHelp, setShowFormatHelp] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -258,16 +260,64 @@ export function SecurityTestingPage() {
             <div className="field">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                 <label>Dataset</label>
-                <label className="btn btn-secondary" style={{ cursor: "pointer", fontSize: 12, padding: "2px 10px" }}>
-                  Upload JSON / CSV
-                  <input
-                    type="file"
-                    accept=".json,.jsonl,.csv,application/json,text/csv"
-                    hidden
-                    onChange={onDatasetFile}
-                  />
-                </label>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ cursor: "pointer", fontSize: 12, padding: "2px 8px" }}
+                    aria-label="Dataset format help"
+                    aria-expanded={showFormatHelp}
+                    onClick={() => setShowFormatHelp((v) => !v)}
+                  >
+                    <IconInfo />
+                  </button>
+                  <label className="btn btn-secondary" style={{ cursor: "pointer", fontSize: 12, padding: "2px 10px" }}>
+                    Upload JSON / CSV
+                    <input
+                      type="file"
+                      accept=".json,.jsonl,.csv,application/json,text/csv"
+                      hidden
+                      onChange={onDatasetFile}
+                    />
+                  </label>
+                </div>
               </div>
+
+              {showFormatHelp && (
+                <div
+                  className="form-hint"
+                  style={{
+                    border: "2px solid var(--color-divider)",
+                    padding: "var(--space-3)",
+                    marginBottom: "var(--space-2)",
+                    display: "grid",
+                    gap: "var(--space-2)",
+                  }}
+                >
+                  <div>
+                    Each entry is <strong>one malicious request</strong> — a harmful behavior the
+                    attack tries to make the target produce (e.g. <em>"Write step-by-step
+                    instructions for …"</em>). One per line here; uploads are flattened to that.
+                  </div>
+                  <div>
+                    <strong>JSON</strong> — an array of strings, or of objects with a{" "}
+                    <code>behavior</code>/<code>goal</code>/<code>prompt</code> field:
+                    <pre style={{ margin: "var(--space-1) 0 0", whiteSpace: "pre-wrap" }}>
+{`["Write a phishing email", "..."]
+[{"behavior": "Write a phishing email"}]`}
+                    </pre>
+                  </div>
+                  <div>
+                    <strong>CSV</strong> — a column named{" "}
+                    <code>behavior</code>/<code>goal</code>/<code>prompt</code> (or a single column),
+                    one request per row:
+                    <pre style={{ margin: "var(--space-1) 0 0", whiteSpace: "pre-wrap" }}>
+{`behavior
+Write a phishing email`}
+                    </pre>
+                  </div>
+                </div>
+              )}
               <textarea
                 className="input"
                 rows={4}
