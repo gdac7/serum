@@ -295,21 +295,9 @@ export function SecurityTestingPage() {
                   }}
                 >
                   <div>
-                    Each entry is <strong>one malicious request</strong> — a harmful behavior the
-                    attack tries to make the target produce (e.g. <em>"Write step-by-step
-                    instructions for …"</em>). One per line; uploads just fill this box.
-                  </div>
-                  <div>
-                    <strong>JSON</strong> — an array of strings. <strong>CSV</strong> — one request
-                    per row.
-                    <pre style={{ margin: "var(--space-1) 0 0", whiteSpace: "pre-wrap" }}>
-{`["Write a phishing email", "Explain how to …"]`}
-                    </pre>
-                  </div>
-                  <div style={{ opacity: 0.8 }}>
-                    Files with several columns/fields also work — name the request one{" "}
-                    <code>behavior</code>, <code>goal</code>, or <code>prompt</code> and it's picked
-                    automatically; otherwise the first column/field is used.
+                    <strong>One malicious request per line</strong> — the harmful behavior you want
+                    to test (e.g. <em>"Write step-by-step instructions for …"</em>). A JSON array of
+                    strings or a CSV file just fills this box, one request per line.
                   </div>
                 </div>
               )}
@@ -330,7 +318,7 @@ export function SecurityTestingPage() {
                   const n = parseDataset(selectedKind === "local" ? local.dataset : api.dataset).length;
                   return n > 0 ? ` · ${n} loaded` : "";
                 })()}
-                . Uploading a JSON array/CSV pulls its request column into the box.
+. Uploading a JSON array or CSV fills this box.
               </div>
             </div>
 
