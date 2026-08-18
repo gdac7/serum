@@ -1,5 +1,11 @@
 import { apiRequest } from "./client";
-import type { CreateRunInput, CreateRunResponse, RunResults, RunSummary } from "../types/run";
+import type {
+  CreateRunInput,
+  CreateRunResponse,
+  RunProgress,
+  RunResults,
+  RunSummary,
+} from "../types/run";
 
 export const runsApi = {
   list: (token: string) => apiRequest<RunSummary[]>("GET", "/runs", token),
@@ -12,6 +18,9 @@ export const runsApi = {
 
   results: (token: string, id: string) =>
     apiRequest<RunResults>("GET", `/runs/${id}/results`, token),
+
+  progress: (token: string, id: string) =>
+    apiRequest<RunProgress>("GET", `/runs/${id}/progress`, token),
 };
 
 // EventSource can't set an Authorization header, so the JWT rides in the query

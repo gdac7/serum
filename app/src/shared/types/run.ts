@@ -60,6 +60,27 @@ export interface RunResults {
   metrics: HarmbenchMetrics | null;
 }
 
+export interface StrategyProgress {
+  strategy_id: string;
+  name: string;
+  category: string;
+  success_rate: number;
+  average_score: number;
+  usage_count: number;
+  example_prompt_pi: string;
+  example_prompt_pj: string;
+}
+
+export interface RunProgress {
+  run_id: string;
+  status: string;
+  total: number;
+  loaded_from_library: number | null;
+  discovered_this_run: number | null;
+  persist_errors: string[];
+  strategies: StrategyProgress[];
+}
+
 export interface CreateRunInput {
   kind: TargetKind;
   model_name: string;
