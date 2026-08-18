@@ -8,6 +8,7 @@ import { ResultsPage } from "./features/results/ResultsPage";
 import { MonitorPage } from "./features/results/MonitorPage";
 import { RunResultsPage } from "./features/results/RunResultsPage";
 import { RunTranscriptPage } from "./features/results/RunTranscriptPage";
+import { RunStrategiesPage } from "./features/results/RunStrategiesPage";
 import { TargetsPage } from "./features/targets/TargetsPage";
 
 function LoginRoute() {
@@ -30,6 +31,7 @@ export function App() {
             <Route path="/results/:id/monitor" element={<MonitorPage />} />
             <Route path="/results/:id" element={<RunResultsPage />} />
             <Route path="/results/:id/transcript" element={<RunTranscriptPage />} />
+            <Route path="/results/:id/strategies" element={<RunStrategiesPage />} />
             <Route path="/" element={<Navigate to="/chat" replace />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,0 +1,129 @@
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { useAuth } from "../../shared/auth/AuthContext";
+import { runsApi } from "../../shared/api/runs";
+import { ApiError } from "../../shared/api/client";
+import type { RunProgress, RunSummary, StrategyProgress } from "../../shared/types/run";
+
+function StrategyCard({ s }: { s: StrategyProgress }) {
+  return (
+    <div className="transcript-item">
+      <div className="card-kicker" style={{ marginBottom: "var(--space-2)" }}>
+        {s.name}
+        {s.category ? ` · ${s.category}` : ""} — avg {s.average_score.toFixed(2)} · used{" "}
+        {s.usage_count}×{s.improvement !== null ? ` · +${s.improvement.toFixed(2)} improvement` : ""}
+      </div>
+
+      {s.malicious_request && (
+        <>
+          <div className="transcript-label">Malicious request</div>
+          <div className="transcript-text" style={{ marginBottom: "var(--space-3)" }}>
+            {s.malicious_request}
+          </div>
+        </>
+      )}
+
+      <div className="transcript-label">Weaker attempt</div>
+      <div className="transcript-text">{s.example_prompt_pi}</div>
+      {s.response_solved && (
+        <>
+          <div className="transcript-label" style={{ marginTop: "var(--space-2)" }}>
+            Target response
+          </div>
+          <div className="transcript-text">{s.response_solved}</div>
+        </>
+      )}
+
+      <div style={{ textAlign: "center", margin: "var(--space-3) 0", opacity: 0.8 }}>
+        <div style={{ fontSize: 22, lineHeight: 1 }}>↓</div>
+        <div className="card-kicker">apply strategy: {s.name}</div>
+        <div style={{ fontSize: 22, lineHeight: 1 }}>↓</div>
+      </div>
+
+      <div className="transcript-label">Stronger attempt</div>
+      <div className="transcript-text">{s.example_prompt_pj}</div>
+      {s.response_j && (
+        <>
+          <div className="transcript-label" style={{ marginTop: "var(--space-2)" }}>
+            Target response
+          </div>
+          <div className="transcript-text">{s.response_j}</div>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function RunStrategiesPage() {
+  const { id = "" } = useParams();
+  const { token } = useAuth();
+  const [run, setRun] = useState<RunSummary | null>(null);
+  const [progress, setProgress] = useState<RunProgress | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    Promise.all([runsApi.get(token, id), runsApi.progress(token, id)])
+      .then(([r, p]) => {
+        if (cancelled) return;
+        setRun(r);
+        setProgress(p);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(
+            err instanceof ApiError
+              ? err.message
+              : "couldn't reach the server — check the gateway is running",
+          );
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token, id]);
+
+  const strategies = progress?.strategies ?? [];
+
+  return (
+    <main style={{ flex: 1, overflowY: "auto" }}>
+      <div style={{ maxWidth: 820, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
+        <Link to={`/results/${id}`} className="text-muted">
+          ← Back to results
+        </Link>
+        <h1 style={{ marginTop: "var(--space-3)" }}>Strategies</h1>
+        <p className="text-muted" style={{ marginBottom: "var(--space-4)" }}>
+          {run?.model_name} · {strategies.length} entr{strategies.length === 1 ? "y" : "ies"}
+        </p>
+
+        <div
+          style={{
+            marginBottom: "var(--space-6)",
+            padding: "var(--space-3) var(--space-4)",
+            borderLeft: "3px solid var(--accent, currentColor)",
+            borderRadius: "var(--radius-2, 6px)",
+            background: "rgba(127, 127, 127, 0.08)",
+            fontSize: 14,
+            lineHeight: 1.5,
+          }}
+        >
+          AutoDAN-Turbo keeps the same strategy once per context it's found in: a technique that
+          beat one response is stored as its own anchor so it can be retrieved and reused when a
+          similar response appears later. Seeing a name repeat is expected — that per-context memory
+          is how the agent improves its attacks across different requests.
+        </div>
+
+        {error && <div className="form-error">{error}</div>}
+        {!error && !progress && <p className="spinner-text">Loading…</p>}
+        {!error && progress && strategies.length === 0 && (
+          <p className="empty-state">No strategies in this target's library yet.</p>
+        )}
+
+        {strategies.map((s) => (
+          <StrategyCard key={s.strategy_id} s={s} />
+        ))}
+      </div>
+    </main>
+  );
+}
