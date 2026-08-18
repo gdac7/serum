@@ -140,9 +140,7 @@ export function RunTranscriptPage() {
         )}
         {!error && loaded && rows.length === 0 && !promptsError && (
           <p className="empty-state">
-            No generated prompts recorded for this run. Training prompts are only
-            captured for runs completed after the service was updated — start a new
-            run to populate them.
+            No generated prompts recorded for this run.
           </p>
         )}
 
