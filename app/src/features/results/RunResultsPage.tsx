@@ -89,10 +89,35 @@ export function RunResultsPage() {
         : strategies.reduce((best, s) => (s.average_score > best.average_score ? s : best)),
     [strategies],
   );
-  const mostFrequent = useMemo(
-    () => [...strategies].sort((a, b) => b.usage_count - a.usage_count).slice(0, 5),
-    [strategies],
-  );
+  // The library holds one row per (strategy, context), so the same strategy
+  // name recurs; collapse by name into a single row with summed uses and a
+  // usage-weighted average score.
+  const mostFrequent = useMemo(() => {
+    const byName = new Map<
+      string,
+      { name: string; category: string; usage_count: number; score_sum: number }
+    >();
+    for (const s of strategies) {
+      const agg = byName.get(s.name) ?? {
+        name: s.name,
+        category: s.category,
+        usage_count: 0,
+        score_sum: 0,
+      };
+      agg.usage_count += s.usage_count;
+      agg.score_sum += s.average_score * s.usage_count;
+      byName.set(s.name, agg);
+    }
+    return [...byName.values()]
+      .map((a) => ({
+        name: a.name,
+        category: a.category,
+        usage_count: a.usage_count,
+        average_score: a.usage_count > 0 ? a.score_sum / a.usage_count : 0,
+      }))
+      .sort((a, b) => b.usage_count - a.usage_count)
+      .slice(0, 5);
+  }, [strategies]);
 
   return (
     <main style={{ flex: 1, overflowY: "auto" }}>
@@ -185,7 +210,7 @@ export function RunResultsPage() {
                   </thead>
                   <tbody>
                     {mostFrequent.map((s) => (
-                      <tr key={s.strategy_id}>
+                      <tr key={s.name}>
                         <td>{s.name}</td>
                         <td className="text-muted">{s.category}</td>
                         <td>{s.usage_count}</td>
