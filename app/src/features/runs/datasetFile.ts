@@ -1,58 +1,11 @@
-// Extracts malicious requests from an uploaded dataset file (JSON or CSV) into
+// Extracts malicious requests from an uploaded dataset file (TXT or CSV) into
 // the one-per-line form the dataset textarea holds.
 
-const REQUEST_KEYS = [
-  "behavior", "goal", "prompt", "request", "query",
-  "text", "instruction", "question", "input",
-];
+// CSV column names that hold the request, so a multi-column file still works.
+const REQUEST_KEYS = ["behavior", "goal", "prompt", "request", "query", "text", "instruction"];
 
-function isRecord(x: unknown): x is Record<string, unknown> {
-  return typeof x === "object" && x !== null && !Array.isArray(x);
-}
-
-// Prefer a recognized request column; otherwise the first non-empty string.
-function pickField(obj: Record<string, unknown>): string | null {
-  for (const key of Object.keys(obj)) {
-    if (REQUEST_KEYS.includes(key.toLowerCase())) {
-      const v = obj[key];
-      if (typeof v === "string" && v.trim()) return v.trim();
-    }
-  }
-  for (const v of Object.values(obj)) {
-    if (typeof v === "string" && v.trim()) return v.trim();
-  }
-  return null;
-}
-
-function collect(rows: unknown[]): string[] {
-  const out: string[] = [];
-  for (const row of rows) {
-    if (typeof row === "string") {
-      if (row.trim()) out.push(row.trim());
-    } else if (isRecord(row)) {
-      const v = pickField(row);
-      if (v) out.push(v);
-    }
-  }
-  return out;
-}
-
-function parseJsonDataset(text: string): string[] {
-  let data: unknown;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    // JSONL: one JSON value per line.
-    const items = text.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => JSON.parse(l));
-    return collect(items);
-  }
-  const rows = Array.isArray(data)
-    ? data
-    : isRecord(data) && Array.isArray(data.data)
-      ? data.data
-      : null;
-  if (!rows) throw new Error("expected a JSON array of requests (or a { data: [...] } wrapper)");
-  return collect(rows);
+function parseTxt(text: string): string[] {
+  return text.split("\n").map((line) => line.trim()).filter(Boolean);
 }
 
 function parseCsvRows(text: string): string[][] {
@@ -89,7 +42,7 @@ function parseCsvRows(text: string): string[][] {
   return rows.filter((r) => r.some((cell) => cell.trim() !== ""));
 }
 
-function parseCsvDataset(text: string): string[] {
+function parseCsv(text: string): string[] {
   const rows = parseCsvRows(text);
   if (rows.length === 0) return [];
   const header = rows[0].map((cell) => cell.trim().toLowerCase());
@@ -106,11 +59,5 @@ function parseCsvDataset(text: string): string[] {
 
 export async function parseDatasetFile(file: File): Promise<string[]> {
   const text = await file.text();
-  const name = file.name.toLowerCase();
-  if (name.endsWith(".json") || name.endsWith(".jsonl")) return parseJsonDataset(text);
-  if (name.endsWith(".csv")) return parseCsvDataset(text);
-  const trimmed = text.trimStart();
-  return trimmed.startsWith("[") || trimmed.startsWith("{")
-    ? parseJsonDataset(text)
-    : parseCsvDataset(text);
+  return file.name.toLowerCase().endsWith(".csv") ? parseCsv(text) : parseTxt(text);
 }

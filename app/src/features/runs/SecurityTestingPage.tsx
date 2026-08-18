@@ -272,10 +272,10 @@ export function SecurityTestingPage() {
                     <IconInfo />
                   </button>
                   <label className="btn btn-secondary" style={{ cursor: "pointer", fontSize: 12, padding: "2px 10px" }}>
-                    Upload JSON / CSV
+                    Upload TXT / CSV
                     <input
                       type="file"
-                      accept=".json,.jsonl,.csv,application/json,text/csv"
+                      accept=".txt,.csv,text/plain,text/csv"
                       hidden
                       onChange={onDatasetFile}
                     />
@@ -295,9 +295,8 @@ export function SecurityTestingPage() {
                   }}
                 >
                   <div>
-                    <strong>One malicious request per line</strong> — the harmful behavior you want
-                    to test (e.g. <em>"Write step-by-step instructions for …"</em>). A JSON array of
-                    strings or a CSV file just fills this box, one request per line.
+                    <strong>One malicious request per line</strong>: the harmful behavior you want
+                    to test (e.g. <em>"Write step-by-step instructions for …"</em>).
                   </div>
                 </div>
               )}
@@ -318,7 +317,7 @@ export function SecurityTestingPage() {
                   const n = parseDataset(selectedKind === "local" ? local.dataset : api.dataset).length;
                   return n > 0 ? ` · ${n} loaded` : "";
                 })()}
-. Uploading a JSON array or CSV fills this box.
+. Uploading a TXT or CSV fills this box.
               </div>
             </div>
 
