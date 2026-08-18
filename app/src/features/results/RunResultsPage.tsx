@@ -214,7 +214,7 @@ export function RunResultsPage() {
                       >
                         {grouped.map((s) => (
                           <option key={s.name} value={s.name}>
-                            {s.name} — avg {s.average_score.toFixed(2)}
+                            {s.name}
                           </option>
                         ))}
                       </select>
