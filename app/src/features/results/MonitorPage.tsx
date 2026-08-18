@@ -75,7 +75,7 @@ export function MonitorPage() {
       const coarse = (frame.coarse as string | undefined) ?? (frame.type as string);
       if (coarse === "completed" || coarse === "failed") {
         refreshRun();
-        if (coarse === "completed") navigate(`/runs/${id}/results`, { replace: true });
+        if (coarse === "completed") navigate(`/results/${id}`, { replace: true });
       }
     });
 
@@ -108,7 +108,7 @@ export function MonitorPage() {
           <p className="empty-state">
             This run is {run.status}.{" "}
             {run.status === "completed" ? (
-              <Link to={`/runs/${id}/results`}>See results</Link>
+              <Link to={`/results/${id}`}>See results</Link>
             ) : (
               "Nothing to monitor."
             )}

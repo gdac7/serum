@@ -104,7 +104,7 @@ export function RunDetailDialog({ runId, onClose }: { runId: string; onClose: ()
             <button
               type="button"
               className="btn btn-primary"
-              onClick={() => navigate(`/runs/${runId}/monitor`)}
+              onClick={() => navigate(`/results/${runId}/monitor`)}
             >
               Monitor jailbreaking test
             </button>
@@ -113,7 +113,7 @@ export function RunDetailDialog({ runId, onClose }: { runId: string; onClose: ()
             <button
               type="button"
               className="btn btn-primary"
-              onClick={() => navigate(`/runs/${runId}/results`)}
+              onClick={() => navigate(`/results/${runId}`)}
             >
               See run results
             </button>
