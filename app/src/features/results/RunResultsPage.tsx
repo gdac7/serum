@@ -179,14 +179,15 @@ export function RunResultsPage() {
               </h2>
               <RequestScoresTable entries={progress?.request_scores ?? []} />
 
-              <button
-                type="button"
-                className="btn btn-secondary"
-                style={{ marginTop: "var(--space-5)" }}
-                onClick={() => navigate(`/results/${id}/transcript`)}
-              >
-                Show attack prompts and target responses
-              </button>
+              <div style={{ textAlign: "left", marginTop: "var(--space-5)", paddingBottom: "var(--space-4)" }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => navigate(`/results/${id}/transcript`)}
+                >
+                  Show attack prompts and target responses
+                </button>
+              </div>
 
               <h2 style={{ textAlign: "center", marginTop: "var(--space-8)" }}>Strategies</h2>
               <div
