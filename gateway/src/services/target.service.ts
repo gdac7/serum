@@ -4,7 +4,6 @@ import { runRepository } from "../repositories/run.repository";
 import { redTeamClient, RedTeamServiceError, TargetConfig } from "../infra/redteam.client";
 import { encrypt, decrypt } from "../infra/crypto";
 import { ensureTargetLoaded } from "./target-loader";
-import { assertEndpointReachable } from "./endpoint-check";
 import { probeEndpoint, ProbeResult } from "../infra/endpoint-probe";
 import { probeFromService } from "./service-probe";
 import { connectorTargetConfig } from "../domain/target-config";
@@ -53,8 +52,6 @@ export const targetService = {
   // Returns immediately with Python's initial status; the client polls
   // GET /targets/:id (or just starts a chat, which waits for it itself).
   async register(userId: string, input: RegisterTargetInput) {
-    await assertEndpointReachable(input);
-
     const row = await targetRepository.create({
       userId,
       kind: input.kind,
@@ -70,6 +67,17 @@ export const targetService = {
     const target = await redTeamClient.registerTarget(userId, configFromRow(row));
     await targetRepository.setPythonTargetId(row.id, target.target_id);
     await targetRepository.setStatus(row.id, target.status);
+
+    // Verified from the service, which is the only host whose answer counts:
+    // it and the gateway resolve names differently, and for a container-hosted
+    // endpoint an address that works here may not work there, or the reverse.
+    if (row.kind !== "local") {
+      const reachable = await probeFromService(userId, target.target_id);
+      if (!reachable.ok) {
+        await targetRepository.delete(row.id, userId);
+        throw new HttpError(400, reachable.message);
+      }
+    }
 
     return { target_id: row.id, status: target.status };
   },

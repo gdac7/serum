@@ -4,7 +4,6 @@ import { runRepository, RunRow } from "../repositories/run.repository";
 import { runsQueue } from "../infra/queue";
 import { redTeamClient, RedTeamServiceError } from "../infra/redteam.client";
 import { encrypt } from "../infra/crypto";
-import { assertEndpointReachable } from "./endpoint-check";
 import { targetRepository } from "../repositories/target.repository";
 
 function shapeRun(run: RunRow) {
@@ -57,8 +56,6 @@ async function fromPython<T>(
 
 export const runService = {
   async createRun(userId: string, input: CreateRunInput) {
-    await assertEndpointReachable(input);
-
     // Fail here rather than in the worker: a run whose connector target is not
     // the caller's would otherwise queue, start, and only then 404 out of view.
     if (input.kind === "connector") {
