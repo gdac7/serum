@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { z } from "zod";
+import { isPrivateHost } from "../infra/host";
 
 const schema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
@@ -23,6 +24,15 @@ const schema = z.object({
     .enum(["true", "false"])
     .default("false")
     .transform((v) => v === "true"),
+  // Handed to users inside their connector command, so it has to be the address
+  // their machine dials from outside — not one that only resolves in our network.
+  PUBLIC_BASE_URL: z.string().url().default("http://localhost:3000"),
+  // Where the red-team service reaches this gateway's bridge. Private-network
+  // address: routing it through PUBLIC_BASE_URL would send internal traffic out
+  // to the internet and back. It feeds target_key, so changing it makes every
+  // connector target look new and start an empty strategy library.
+  INTERNAL_BASE_URL: z.string().url().default("http://localhost:3000"),
+  BRIDGE_SECRET: z.string().min(16, "BRIDGE_SECRET must be at least 16 characters"),
 });
 
 const parsed = schema.safeParse(process.env);
@@ -36,3 +46,24 @@ if (!parsed.success) {
 }
 
 export const env = parsed.data;
+
+// A production gateway that starts with a local PUBLIC_BASE_URL hands every user
+// a connector command pointing at their own machine, and nothing else would
+// notice: the connector simply never appears.
+if (env.NODE_ENV === "production") {
+  const url = new URL(env.PUBLIC_BASE_URL);
+  const problems: string[] = [];
+  if (url.protocol !== "https:") {
+    problems.push("PUBLIC_BASE_URL must be https — connectors send their token over it");
+  }
+  if (isPrivateHost(url.hostname)) {
+    problems.push(
+      `PUBLIC_BASE_URL host ${url.hostname} is private; it must be the address a user's machine dials from outside`,
+    );
+  }
+  if (problems.length > 0) {
+    console.error("Invalid environment configuration:");
+    for (const problem of problems) console.error(`  ${problem}`);
+    process.exit(1);
+  }
+}

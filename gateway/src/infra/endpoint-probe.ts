@@ -2,7 +2,7 @@
 // {response_field}) and classifies the failure into something actionable.
 
 import { env } from "../config/env";
-import { isPrivateHost } from "./url-guard";
+import { isPrivateHost } from "./host";
 
 const DEFAULT_PROMPT_FIELD = "input_text";
 const DEFAULT_RESPONSE_FIELD = "output";
@@ -32,6 +32,9 @@ export interface ProbeOptions {
   apiKey?: string;
   promptField?: string;
   responseField?: string;
+  /** For gateway-built urls only. User input must never set this: the host
+   *  check is what stops a target config from reaching our internal network. */
+  allowPrivateHost?: boolean;
 }
 
 class ProbeShapeError extends Error {}
@@ -107,7 +110,7 @@ export async function probeEndpoint(url: string, opts: ProbeOptions = {}): Promi
 
   // ALLOW_PRIVATE_ENDPOINTS means the operator runs the endpoint alongside the
   // gateway, so a private address is the intended target rather than a mistake.
-  if (isPrivateHost(hostname) && !env.ALLOW_PRIVATE_ENDPOINTS) {
+  if (isPrivateHost(hostname) && !env.ALLOW_PRIVATE_ENDPOINTS && !opts.allowPrivateHost) {
     return {
       ok: false,
       code: "loopback",

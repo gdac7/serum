@@ -9,6 +9,7 @@ export default defineConfig({
         "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       // Pinned so the endpoint-guard tests don't depend on the developer's .env.
       ALLOW_PRIVATE_ENDPOINTS: "false",
+      BRIDGE_SECRET: "test-bridge-secret-16",
     },
   },
 });

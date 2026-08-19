@@ -1,7 +1,7 @@
 // Mirrors the gateway's shaped payloads (gateway/src/services/run.service.ts,
 // gateway/src/infra/redteam.client.ts) — the frontend never talks to Python.
 
-export type TargetKind = "local" | "api";
+export type TargetKind = "local" | "api" | "connector";
 
 export type CoarseStatus = "queued" | "running" | "completed" | "failed";
 
@@ -121,6 +121,9 @@ export interface RunProgress {
 export interface CreateRunInput {
   kind: TargetKind;
   model_name: string;
+  // kind:"connector" only -- a connector is a standing registration with a
+  // running agent behind it, so a run references one instead of describing it.
+  connector_target_id?: string;
   phases: Phase[];
   dataset: string[];
   standard_dataset?: "harmbench";

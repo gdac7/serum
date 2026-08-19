@@ -5,6 +5,7 @@ import { runsQueue } from "../infra/queue";
 import { redTeamClient, RedTeamServiceError } from "../infra/redteam.client";
 import { encrypt } from "../infra/crypto";
 import { assertEndpointReachable } from "./endpoint-check";
+import { targetRepository } from "../repositories/target.repository";
 
 function shapeRun(run: RunRow) {
   return {
@@ -58,6 +59,15 @@ export const runService = {
   async createRun(userId: string, input: CreateRunInput) {
     await assertEndpointReachable(input);
 
+    // Fail here rather than in the worker: a run whose connector target is not
+    // the caller's would otherwise queue, start, and only then 404 out of view.
+    if (input.kind === "connector") {
+      const target = await targetRepository.findByIdForUser(input.connector_target_id!, userId);
+      if (!target || target.kind !== "connector") {
+        throw new HttpError(404, "connector target not found");
+      }
+    }
+
     const run = await runRepository.create({
       userId,
       modelName: input.model_name,
@@ -66,6 +76,7 @@ export const runService = {
       freshLibrary: input.fresh_library,
       load4Bits: input.load_4_bits,
       targetKind: input.kind,
+      connectorTargetId: input.connector_target_id ?? null,
       endpointUrl: input.endpoint_url ?? null,
       encryptedApiKey: input.api_key ? encrypt(input.api_key) : null,
       promptField: input.prompt_field ?? null,

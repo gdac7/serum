@@ -6,6 +6,8 @@ import { encrypt, decrypt } from "../infra/crypto";
 import { ensureTargetLoaded } from "./target-loader";
 import { assertEndpointReachable } from "./endpoint-check";
 import { probeEndpoint, ProbeResult } from "../infra/endpoint-probe";
+import { connectorTargetConfig, bridgeUrl } from "../domain/target-config";
+import { env } from "../config/env";
 import type { RegisterTargetInput } from "../domain/dto";
 
 // in_use marks a target whose model is running a test right now: the run holds
@@ -27,7 +29,12 @@ function shapeTarget(t: TargetRow, inUse = false) {
   };
 }
 
+// endpoint_url on a connector row is the address on the *user's* machine, which
+// only their connector can reach; what the service gets is the bridge instead.
 function configFromRow(t: TargetRow): TargetConfig {
+  if (t.kind === "connector") {
+    return connectorTargetConfig(t.model_name, t.id);
+  }
   return t.kind === "api"
     ? {
         kind: "api",
@@ -132,15 +139,27 @@ export const targetService = {
   async test(userId: string, id: string): Promise<ProbeResult> {
     const row = await targetRepository.findByIdForUser(id, userId);
     if (!row) throw new HttpError(404, "target not found");
-    if (row.kind !== "api" || !row.endpoint_url) {
-      throw new HttpError(400, "only kind:api targets have an endpoint to test");
+    if (row.kind === "local") {
+      throw new HttpError(400, "a local target has no endpoint to test");
+    }
+    if (row.kind === "api" && !row.endpoint_url) {
+      throw new HttpError(400, "target has no endpoint to test");
     }
 
-    const result = await probeEndpoint(row.endpoint_url, {
-      apiKey: row.encrypted_api_key ? decrypt(row.encrypted_api_key) : undefined,
-      promptField: row.prompt_field ?? undefined,
-      responseField: row.response_field ?? undefined,
-    });
+    // For a connector this walks the whole path the service will use -- bridge,
+    // queue, the user's connector, their model -- so a broken INTERNAL_BASE_URL
+    // or a connector that is not running surfaces here rather than mid-run.
+    const result =
+      row.kind === "connector"
+        ? await probeEndpoint(bridgeUrl(row.id), {
+            apiKey: env.BRIDGE_SECRET,
+            allowPrivateHost: true,
+          })
+        : await probeEndpoint(row.endpoint_url!, {
+            apiKey: row.encrypted_api_key ? decrypt(row.encrypted_api_key) : undefined,
+            promptField: row.prompt_field ?? undefined,
+            responseField: row.response_field ?? undefined,
+          });
 
     await targetRepository.setStatus(
       row.id,

@@ -32,6 +32,16 @@ export const KIND_DEFS: KindDef[] = [
   },
 ];
 
+// Not offered in the picker: a connector target cannot be created from this
+// form, because issuing its token is a separate step. It is reached only by
+// selecting a connector target that already exists.
+export const CONNECTOR_KIND: KindDef = {
+  id: "connector",
+  name: "Model on your machine",
+  description:
+    "Attack a model reached through the connector running on your own machine — nothing needs to be exposed to the internet.",
+};
+
 // Local targets are limited to models the service has weights for.
 export const LOCAL_MODELS = [
   "meta-llama/Llama-3.1-8B-Instruct",

@@ -67,3 +67,23 @@ ALTER TABLE targets ADD COLUMN IF NOT EXISTS prompt_field text;
 ALTER TABLE targets ADD COLUMN IF NOT EXISTS response_field text;
 ALTER TABLE runs ADD COLUMN IF NOT EXISTS prompt_field text;
 ALTER TABLE runs ADD COLUMN IF NOT EXISTS response_field text;
+
+ALTER TABLE runs ADD COLUMN IF NOT EXISTS connector_target_id uuid REFERENCES targets (id);
+
+-- Credential a user's machine polls with, so a model that never accepts inbound
+-- connections can still be attacked. One live connector per target; the token is
+-- stored hashed because it is a bearer credential we hand out once.
+CREATE TABLE IF NOT EXISTS connectors (
+    id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id      uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    target_id    uuid NOT NULL REFERENCES targets (id) ON DELETE CASCADE,
+    token_hash   text NOT NULL,
+    last_seen_at timestamptz,
+    revoked_at   timestamptz,
+    created_at   timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS connectors_token_hash_idx ON connectors (token_hash);
+-- Rotation revokes rather than deletes, so only one unrevoked row per target.
+CREATE UNIQUE INDEX IF NOT EXISTS connectors_active_target_idx
+    ON connectors (target_id) WHERE revoked_at IS NULL;

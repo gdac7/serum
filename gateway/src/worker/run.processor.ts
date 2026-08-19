@@ -3,6 +3,7 @@ import type { Logger } from "pino";
 import { logger } from "../infra/logger";
 import { runRepository } from "../repositories/run.repository";
 import { redTeamClient, RedTeamServiceError } from "../infra/redteam.client";
+import { connectorTargetConfig } from "../domain/target-config";
 import { decrypt } from "../infra/crypto";
 import type { RunJobData } from "../infra/queue";
 import { publishRunEvent } from "../infra/run-events";
@@ -108,7 +109,9 @@ export async function processRun(job: Job<RunJobData>): Promise<void> {
 
     const target = await redTeamClient.registerTarget(
       clientId,
-      run.target_kind === "api"
+      run.target_kind === "connector"
+        ? connectorTargetConfig(run.model_name, run.connector_target_id!)
+        : run.target_kind === "api"
         ? {
             kind: "api",
             model_name: run.model_name,

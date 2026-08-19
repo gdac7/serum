@@ -18,6 +18,12 @@ export interface TargetSummary {
   updated_at: string;
 }
 
+export interface ConnectorStatus {
+  configured: boolean;
+  online: boolean;
+  last_seen_at: string | null;
+}
+
 export interface RegisterTargetInput {
   kind: TargetKind;
   model_name: string;
@@ -46,6 +52,16 @@ export const targetsApi = {
 
   test: (token: string, id: string) =>
     apiRequest<ProbeResult>("POST", `/targets/${id}/test`, token),
+
+  issueConnector: (token: string, id: string) =>
+    apiRequest<{ token: string; command: string }>(
+      "POST",
+      `/targets/${id}/connector`,
+      token,
+    ),
+
+  connectorStatus: (token: string, id: string) =>
+    apiRequest<ConnectorStatus>("GET", `/targets/${id}/connector`, token),
 
   remove: (token: string, id: string) =>
     apiRequest<void>("DELETE", `/targets/${id}`, token),

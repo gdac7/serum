@@ -4,6 +4,7 @@ import { targetsApi, type ProbeResult, type RegisterTargetInput } from "../../sh
 import { ApiError } from "../../shared/api/client";
 import type { TargetKind } from "../../shared/types/run";
 import { EndpointContract } from "../runs/EndpointContract";
+import { ConnectorSetup } from "./ConnectorSetup";
 
 export function RegisterTargetDialog({
   onClose,
@@ -25,10 +26,20 @@ export function RegisterTargetDialog({
   const [submitting, setSubmitting] = useState(false);
   const [probe, setProbe] = useState<ProbeResult | null>(null);
   const [probing, setProbing] = useState(false);
+  const [connectorTargetId, setConnectorTargetId] = useState<string | null>(null);
 
   function payload(): RegisterTargetInput {
-    return kind === "local"
-      ? { kind: "local", model_name: modelName.trim(), load_4_bits: load4Bits }
+    if (kind === "local") {
+      return { kind: "local", model_name: modelName.trim(), load_4_bits: load4Bits };
+    }
+    return kind === "connector"
+      ? {
+          kind: "connector",
+          model_name: modelName.trim(),
+          endpoint_url: endpointUrl.trim(),
+          prompt_field: promptField.trim() || undefined,
+          response_field: responseField.trim() || undefined,
+        }
       : {
           kind: "api",
           model_name: modelName.trim(),
@@ -63,7 +74,7 @@ export function RegisterTargetDialog({
       return;
     }
     // Whether a private/http host is allowed is the gateway's call, not ours.
-    if (kind === "api" && !/^https?:\/\//.test(endpointUrl.trim())) {
+    if (kind !== "local" && !/^https?:\/\//.test(endpointUrl.trim())) {
       setError("Endpoint URL must start with http:// or https://.");
       return;
     }
@@ -72,6 +83,10 @@ export function RegisterTargetDialog({
     setSubmitting(true);
     try {
       const res = await targetsApi.register(token, payload());
+      if (kind === "connector") {
+        setConnectorTargetId(res.target_id);
+        return;
+      }
       onRegistered(res.target_id);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "failed to register target");
@@ -89,6 +104,13 @@ export function RegisterTargetDialog({
         aria-labelledby="new-target-title"
         onClick={(e) => e.stopPropagation()}
       >
+        {connectorTargetId ? (
+          <ConnectorSetup
+            targetId={connectorTargetId}
+            onDone={() => onRegistered(connectorTargetId)}
+          />
+        ) : (
+          <>
         <div className="dialog-title" id="new-target-title">
           New target
         </div>
@@ -111,6 +133,15 @@ export function RegisterTargetDialog({
                 onChange={() => setKind("api")}
               />
               Remote API
+            </label>
+            <label className="seg-opt">
+              <input
+                type="radio"
+                name="target-kind"
+                checked={kind === "connector"}
+                onChange={() => setKind("connector")}
+              />
+              On my machine
             </label>
           </div>
 
@@ -142,7 +173,9 @@ export function RegisterTargetDialog({
                     gap: "var(--space-2)",
                   }}
                 >
-                  <label style={{ margin: 0 }}>Endpoint URL</label>
+                  <label style={{ margin: 0 }}>
+                    {kind === "connector" ? "Model URL on your machine" : "Endpoint URL"}
+                  </label>
                   <button
                     type="button"
                     className="btn btn-secondary"
@@ -156,7 +189,11 @@ export function RegisterTargetDialog({
                 <input
                   className="input"
                   type="url"
-                  placeholder="https://your-model.example.com/generate"
+                  placeholder={
+                    kind === "connector"
+                      ? "http://localhost:7070/generate"
+                      : "https://your-model.example.com/generate"
+                  }
                   value={endpointUrl}
                   onChange={(e) => {
                     setEndpointUrl(e.target.value);
@@ -164,19 +201,21 @@ export function RegisterTargetDialog({
                   }}
                 />
               </div>
-              <div className="field">
-                <label>API key (optional)</label>
-                <input
-                  className="input"
-                  type="password"
-                  placeholder="bearer token, if your endpoint needs one"
-                  value={apiKey}
-                  onChange={(e) => {
-                    setApiKey(e.target.value);
-                    setProbe(null);
-                  }}
-                />
-              </div>
+              {kind === "api" && (
+                <div className="field">
+                  <label>API key (optional)</label>
+                  <input
+                    className="input"
+                    type="password"
+                    placeholder="bearer token, if your endpoint needs one"
+                    value={apiKey}
+                    onChange={(e) => {
+                      setApiKey(e.target.value);
+                      setProbe(null);
+                    }}
+                  />
+                </div>
+              )}
               <details>
                 <summary style={{ cursor: "pointer", fontSize: 13 }}>Advanced</summary>
                 <div className="field" style={{ marginTop: "var(--space-2)" }}>
@@ -235,9 +274,11 @@ export function RegisterTargetDialog({
             Cancel
           </button>
           <button type="button" className="btn btn-primary" onClick={submit} disabled={submitting}>
-            {submitting ? "Registering…" : "Register target"}
+            {submitting ? "Registering…" : kind === "connector" ? "Continue" : "Register target"}
           </button>
         </div>
+          </>
+        )}
       </div>
     </div>
   );

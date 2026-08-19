@@ -7,7 +7,7 @@ import { ApiError } from "../../shared/api/client";
 import { SegMulti } from "../../shared/components/SegMulti";
 import { IconInfo } from "../../shared/components/icons";
 import { EndpointContract } from "./EndpointContract";
-import { APPROACH, KIND_DEFS, LOCAL_MODELS, PHASE_OPTIONS, DEFAULT_LOCAL_FORM, DEFAULT_API_FORM } from "./kinds";
+import { APPROACH, CONNECTOR_KIND, KIND_DEFS, LOCAL_MODELS, PHASE_OPTIONS, DEFAULT_LOCAL_FORM, DEFAULT_API_FORM } from "./kinds";
 import type { LocalFormState, ApiFormState } from "./kinds";
 import { parseDatasetFile } from "./datasetFile";
 import type { CreateRunInput, Phase, TargetKind } from "../../shared/types/run";
@@ -35,7 +35,9 @@ function validate(
   datasetSource: "custom" | "standard",
 ): string | null {
   const form = kind === "local" ? local : api;
-  if (!form.model_name.trim()) return "Model name is required.";
+  // A connector target is already registered; the run only chooses phases and
+  // dataset, so there is no model or endpoint to validate here.
+  if (kind !== "connector" && !form.model_name.trim()) return "Model name is required.";
   if (kind === "local" && !LOCAL_MODELS.includes(form.model_name.trim())) {
     return "Choose a supported local model.";
   }
@@ -126,6 +128,7 @@ export function SecurityTestingPage() {
     if (!t) return;
 
     setSelectedKind(t.kind);
+    if (t.kind === "connector") return;
     if (t.kind === "local") {
       setLocal((s) => ({ ...s, model_name: t.model_name, load_4_bits: t.load_4_bits }));
     } else {
@@ -180,8 +183,21 @@ export function SecurityTestingPage() {
         ? { dataset: [], standard_dataset: "harmbench" as const, standard_dataset_percent: standardPercent }
         : { dataset: parseDataset(selectedKind === "local" ? local.dataset : api.dataset) };
 
+    const connectorTarget =
+      selectedKind === "connector" ? targets.find((t) => t.target_id === selectedTargetId) : undefined;
+
     const input: CreateRunInput =
-      selectedKind === "local"
+      selectedKind === "connector"
+        ? {
+            kind: "connector",
+            connector_target_id: selectedTargetId,
+            model_name: connectorTarget?.model_name ?? "",
+            phases: withEvaluate(api.phases),
+            ...datasetFields,
+            fresh_library: api.fresh_library,
+            load_4_bits: false,
+          }
+        : selectedKind === "local"
         ? {
             kind: "local",
             model_name: local.model_name.trim(),
@@ -257,7 +273,9 @@ export function SecurityTestingPage() {
               <div className="form-hint">
                 {selectedTargetId === NEW_TARGET
                   ? "Or fill in a new target below."
-                  : "Fields below are prefilled from this target — edit freely before running."}
+                  : selectedKind === "connector"
+                    ? "This target is reached through your connector, so there is nothing to configure."
+                    : "Fields below are prefilled from this target — edit freely before running."}
               </div>
             </div>
 
@@ -277,7 +295,9 @@ export function SecurityTestingPage() {
                 ))}
               </div>
               <div className="form-hint">
-                {KIND_DEFS.find((k) => k.id === selectedKind)?.description}
+                {selectedKind === "connector"
+                  ? CONNECTOR_KIND.description
+                  : KIND_DEFS.find((k) => k.id === selectedKind)?.description}
               </div>
             </div>
 
@@ -286,6 +306,15 @@ export function SecurityTestingPage() {
               Parameters for {APPROACH.name}
             </div>
 
+            {selectedKind === "connector" && (
+              <div className="form-note">
+                Running against{" "}
+                <strong>{targets.find((t) => t.target_id === selectedTargetId)?.model_name}</strong>{" "}
+                through your connector. Keep it running for the whole test.
+              </div>
+            )}
+
+            {selectedKind !== "connector" && (
             <div className="field">
               <label>Model{selectedKind === "local" ? "" : " name"}</label>
               {selectedKind === "local" ? (
@@ -312,6 +341,7 @@ export function SecurityTestingPage() {
                 />
               )}
             </div>
+            )}
 
             <div className="field">
               <label>Training phases</label>
@@ -467,7 +497,7 @@ Explain how to bypass a website paywall`}
               Fresh library (ignore this target's stored strategies)
             </label>
 
-            {selectedKind === "local" ? (
+            {selectedKind === "connector" ? null : selectedKind === "local" ? (
               <label className="radio" style={{ fontSize: 13 }}>
                 <input
                   type="checkbox"

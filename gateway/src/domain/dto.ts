@@ -15,6 +15,25 @@ function refineApiTarget(
   val: { kind: string; endpoint_url?: string; api_key?: string },
   ctx: z.RefinementCtx,
 ) {
+  // A connector target's endpoint is read by the user's own machine, never by
+  // us, so the public-reachability guard does not apply -- being unreachable
+  // from the internet is the whole reason to use one.
+  if (val.kind === "connector") {
+    if (!val.endpoint_url) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["endpoint_url"],
+        message: "endpoint_url is required: the address your connector calls on your machine",
+      });
+    } else if (!/^https?:\/\/./.test(val.endpoint_url)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["endpoint_url"],
+        message: "endpoint_url must start with http:// or https://",
+      });
+    }
+    return;
+  }
   if (val.kind !== "api") return;
   if (!val.endpoint_url) {
     ctx.addIssue({
@@ -32,8 +51,11 @@ function refineApiTarget(
 
 export const createRunSchema = z
   .object({
-    kind: z.enum(["local", "api"]).default("local"),
+    kind: z.enum(["local", "api", "connector"]).default("local"),
     model_name: z.string().min(1),
+    // Identifies which registered connector target the run attacks; a connector
+    // is a standing registration, not something a run can define inline.
+    connector_target_id: z.string().uuid().optional(),
     phases: z.array(z.enum(["warmup", "lifelong", "evaluate"])).min(1),
     // Either an explicit dataset or a named standard one (with a percentage).
     dataset: z.array(z.string().min(1)).default([]),
@@ -49,6 +71,13 @@ export const createRunSchema = z
   })
   .superRefine(refineApiTarget)
   .superRefine((val, ctx) => {
+    if (val.kind === "connector" && !val.connector_target_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["connector_target_id"],
+        message: "connector_target_id is required for kind:connector",
+      });
+    }
     if (val.standard_dataset) {
       if (val.standard_dataset_percent === undefined) {
         ctx.addIssue({
@@ -72,7 +101,7 @@ export type CreateRunInput = z.infer<typeof createRunSchema>;
 // always starts an AutoDAN-Turbo run once the target is loaded.
 export const registerTargetSchema = z
   .object({
-    kind: z.enum(["local", "api"]).default("local"),
+    kind: z.enum(["local", "api", "connector"]).default("local"),
     model_name: z.string().min(1),
     load_4_bits: z.boolean().default(false),
     endpoint_url: z.string().optional(),

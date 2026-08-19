@@ -3,6 +3,7 @@ import { registerTargetSchema, chatSchema } from "../domain/dto";
 import { validateBody } from "../middleware/validate";
 import { requireAuth } from "../middleware/auth.middleware";
 import { targetService } from "../services/target.service";
+import { connectorService } from "../services/connector.service";
 import { streamChatResponse } from "../infra/chat-route";
 
 export const targetsRouter = Router();
@@ -65,6 +66,33 @@ targetsRouter.get("/targets/:id", requireAuth, async (req, res, next) => {
 targetsRouter.delete("/targets/:id", requireAuth, async (req, res, next) => {
   try {
     await targetService.remove(req.user!.id, req.params.id);
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// The token is returned only by this route, and only at issue time -- it is
+// stored hashed, so a lost token is replaced rather than recovered.
+targetsRouter.post("/targets/:id/connector", requireAuth, async (req, res, next) => {
+  try {
+    res.status(201).json(await connectorService.issue(req.user!.id, req.params.id));
+  } catch (err) {
+    next(err);
+  }
+});
+
+targetsRouter.get("/targets/:id/connector", requireAuth, async (req, res, next) => {
+  try {
+    res.json(await connectorService.status(req.user!.id, req.params.id));
+  } catch (err) {
+    next(err);
+  }
+});
+
+targetsRouter.delete("/targets/:id/connector", requireAuth, async (req, res, next) => {
+  try {
+    await connectorService.revoke(req.user!.id, req.params.id);
     res.status(204).end();
   } catch (err) {
     next(err);
