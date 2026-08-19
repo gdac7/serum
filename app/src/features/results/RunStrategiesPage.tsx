@@ -7,7 +7,7 @@ import type { RunProgress, RunSummary, StrategyProgress } from "../../shared/typ
 
 function StrategyCard({ s }: { s: StrategyProgress }) {
   return (
-    <div className="transcript-item">
+    <div className="transcript-item strategy-box">
       <div className="card-kicker" style={{ marginBottom: "var(--space-2)" }}>
         {s.name}
         {s.category ? ` · ${s.category}` : ""} — avg {s.average_score.toFixed(2)}

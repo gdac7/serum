@@ -125,7 +125,7 @@ export function RunResultsPage() {
 
   return (
     <main style={{ flex: 1, overflowY: "auto" }}>
-      <div style={{ maxWidth: 820, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
+      <div style={{ maxWidth: 1160, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
         <Link to="/results" className="text-muted">
           ← Back to tests
         </Link>
@@ -140,164 +140,201 @@ export function RunResultsPage() {
         {!error && !results && <p className="spinner-text">Loading…</p>}
 
         {results && (
-          <>
-            <h2 style={{ textAlign: "center" }}>Attack prompts</h2>
-            {results.metrics && (
-              <div className="metrics-grid" style={{ marginBottom: "var(--space-6)" }}>
-                <div>
-                  <div className="metric-value">{(results.metrics.asr * 100).toFixed(0)}%</div>
-                  <div className="metric-label">Attack success</div>
-                </div>
-              </div>
-            )}
+          <div style={{ display: "flex", gap: "var(--space-6)", alignItems: "flex-start" }}>
+            <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+              <h1 className="section-title" style={{ textAlign: "center", paddingBottom: "var(--space-4)" }}>
+                Learning phase
+              </h1>
 
-            {phases.length === 0 ? (
-              <p className="empty-state">No phase summaries for this run.</p>
-            ) : (
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Phase</th>
-                    <th>Avg score</th>
-                    <th>Attacks</th>
-                    <th>Successful</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {phases.map(([name, p]) => (
-                    <tr key={name}>
-                      <td>{PHASE_LABEL[name] ?? name}</td>
-                      <td>{p.average_score.toFixed(2)}</td>
-                      <td>{p.total_attacks}</td>
-                      <td>{p.successful_attacks}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+              <h2 style={{ textAlign: "center" }}>Attack prompts</h2>
 
-
-            <button
-              type="button"
-              className="btn btn-secondary"
-              style={{ marginTop: "var(--space-3)" }}
-              onClick={() => navigate(`/results/${id}/transcript`)}
-            >
-              Show attack prompts and target responses
-            </button>
-
-            <h2 style={{ textAlign: "center", marginTop: "var(--space-8)" }}>Strategies</h2>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                textAlign: "center",
-                marginBottom: "var(--space-6)",
-              }}
-            >
-              <div>
-                <div className="metric-value">{discovered}</div>
-                <div className="metric-label">Strategies discovered</div>
-              </div>
-            </div>
-            {strategies.length === 0 ? (
-              <p className="empty-state">No strategies in this target's library yet.</p>
-            ) : (
-              <>
-                <div style={{ textAlign: "center", marginBottom: "var(--space-5)" }}>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => navigate(`/results/${id}/strategies`)}
-                  >
-                    Show strategies
-                  </button>
-                </div>
-
-                {selected && (
-                  <>
-                    <div className="field">
-                      <label>Strategy example</label>
-                      <select
-                        className="input"
-                        value={selected.name}
-                        onChange={(e) => setSelectedName(e.target.value)}
-                      >
-                        {grouped.map((s) => (
-                          <option key={s.name} value={s.name}>
-                            {s.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="transcript-item">
-                      <div className="transcript-label">Malicious request</div>
-                      <div className="transcript-text" style={{ marginBottom: "var(--space-3)" }}>
-                        {selected.example.malicious_request || (
-                          <span className="text-muted">
-                            not recorded
-                          </span>
-                        )}
-                      </div>
-                      <div className="transcript-label">Weaker attempt</div>
-                      <div className="transcript-text">{selected.example.example_prompt_pi}</div>
-                      {selected.example.response_solved && (
-                        <>
-                          <div className="transcript-label" style={{ marginTop: "var(--space-2)" }}>
-                            Target response
-                          </div>
-                          <div className="transcript-text">{selected.example.response_solved}</div>
-                        </>
-                      )}
-                      <div
-                        style={{
-                          textAlign: "center",
-                          margin: "var(--space-3) 0",
-                          opacity: 0.8,
-                        }}
-                      >
-                        <div style={{ fontSize: 22, lineHeight: 1 }}>↓</div>
-                        <div className="card-kicker">apply strategy: {selected.name}</div>
-                        <div style={{ fontSize: 22, lineHeight: 1 }}>↓</div>
-                      </div>
-                      <div className="transcript-label">Stronger attempt</div>
-                      <div className="transcript-text">{selected.example.example_prompt_pj}</div>
-                      {selected.example.response_j && (
-                        <>
-                          <div className="transcript-label" style={{ marginTop: "var(--space-2)" }}>
-                            Target response
-                          </div>
-                          <div className="transcript-text">{selected.example.response_j}</div>
-                        </>
-                      )}
-                    </div>
-                  </>
-                )}
-
-                <h3 style={{ marginTop: "var(--space-5)" }}>Most frequent strategies</h3>
+              {phases.length === 0 ? (
+                <p className="empty-state">No phase summaries for this run.</p>
+              ) : (
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Strategy</th>
-                      <th>Category</th>
-                      <th>Uses</th>
+                      <th>Phase</th>
                       <th>Avg score</th>
+                      <th>Attacks</th>
+                      <th>Successful</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {mostFrequent.map((s) => (
-                      <tr key={s.name}>
-                        <td>{s.name}</td>
-                        <td className="text-muted">{s.category}</td>
-                        <td>{s.usage_count}</td>
-                        <td>{s.average_score.toFixed(2)}</td>
+                    {phases.map(([name, p]) => (
+                      <tr key={name}>
+                        <td>{PHASE_LABEL[name] ?? name}</td>
+                        <td>{p.average_score.toFixed(2)}</td>
+                        <td>{p.total_attacks}</td>
+                        <td>{p.successful_attacks}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </>
-            )}
-          </>
+              )}
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ marginTop: "var(--space-3)" }}
+                onClick={() => navigate(`/results/${id}/transcript`)}
+              >
+                Show attack prompts and target responses
+              </button>
+
+              <h2 style={{ textAlign: "center", marginTop: "var(--space-8)" }}>Strategies</h2>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  textAlign: "center",
+                  marginBottom: "var(--space-6)",
+                }}
+              >
+                <div>
+                  <div className="metric-value">{discovered}</div>
+                  <div className="metric-label">Strategies discovered</div>
+                </div>
+              </div>
+              {strategies.length === 0 ? (
+                <p className="empty-state">No strategies in this target's library yet.</p>
+              ) : (
+                <>
+                  {selected && (
+                    <>
+                      <div className="field">
+                        <label>Strategy example</label>
+                        <select
+                          className="input"
+                          value={selected.name}
+                          onChange={(e) => setSelectedName(e.target.value)}
+                        >
+                          {grouped.map((s) => (
+                            <option key={s.name} value={s.name}>
+                              {s.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="transcript-item strategy-box">
+                        <div className="transcript-label">Malicious request</div>
+                        <div className="transcript-text" style={{ marginBottom: "var(--space-3)" }}>
+                          {selected.example.malicious_request || (
+                            <span className="text-muted">
+                              not recorded
+                            </span>
+                          )}
+                        </div>
+                        <div className="transcript-label">Weaker attempt</div>
+                        <div className="transcript-text">{selected.example.example_prompt_pi}</div>
+                        {selected.example.response_solved && (
+                          <>
+                            <div className="transcript-label" style={{ marginTop: "var(--space-2)" }}>
+                              Target response
+                            </div>
+                            <div className="transcript-text">{selected.example.response_solved}</div>
+                          </>
+                        )}
+                        <div
+                          style={{
+                            textAlign: "center",
+                            margin: "var(--space-3) 0",
+                            opacity: 0.8,
+                          }}
+                        >
+                          <div style={{ fontSize: 22, lineHeight: 1 }}>↓</div>
+                          <div className="card-kicker">apply strategy: {selected.name}</div>
+                          <div style={{ fontSize: 22, lineHeight: 1 }}>↓</div>
+                        </div>
+                        <div className="transcript-label">Stronger attempt</div>
+                        <div className="transcript-text">{selected.example.example_prompt_pj}</div>
+                        {selected.example.response_j && (
+                          <>
+                            <div className="transcript-label" style={{ marginTop: "var(--space-2)" }}>
+                              Target response
+                            </div>
+                            <div className="transcript-text">{selected.example.response_j}</div>
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  <div style={{ textAlign: "left", marginTop: "var(--space-5)", paddingBottom: "var(--space-4)" }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => navigate(`/results/${id}/strategies`)}
+                    >
+                      Show strategies
+                    </button>
+                  </div>
+
+                  <h3 style={{ marginTop: "var(--space-5)" }}>Most frequent strategies</h3>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Strategy</th>
+                        <th>Category</th>
+                        <th>Uses</th>
+                        <th>Avg score</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mostFrequent.map((s) => (
+                        <tr key={s.name}>
+                          <td>{s.name}</td>
+                          <td className="text-muted">{s.category}</td>
+                          <td>{s.usage_count}</td>
+                          <td>{s.average_score.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              )}
+            </div>
+
+            <div
+              style={{
+                alignSelf: "stretch",
+                width: 1,
+                background: "var(--border-color, currentColor)",
+                opacity: 0.2,
+              }}
+            />
+
+            <div style={{ flex: "0 0 300px", position: "sticky", top: "var(--space-6)" }}>
+              <h1 className="section-title" style={{ textAlign: "center" }}>Jailbreak Results</h1>
+              {results.metrics ? (
+                <div style={{ display: "flex", gap: "var(--space-4)" }}>
+                  <div style={{ flex: 1 }}>
+                    <div className="metric-circle">
+                      <div className="metric-value">{(results.metrics.asr * 100).toFixed(0)}%</div>
+                      <div className="metric-label">ASR</div>
+                    </div>
+                    <p className="metric-explainer">
+                      Attack success rate: the share of malicious requests that got a harmful
+                      response out of the target (jailbreak prompts / total prompts generated).
+                    </p>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div className="metric-circle">
+                      <div className="metric-value">{(results.metrics.rsr * 100).toFixed(0)}%</div>
+                      <div className="metric-label">RSR</div>
+                    </div>
+                    <p className="metric-explainer">
+                      Request success rate: the share of malicious requests AutoDAN managed to
+                      turn into a jailbreak (malicious requests jailbroken / total malicious
+                      requests).
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="empty-state">No evaluation metrics yet.</p>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </main>
