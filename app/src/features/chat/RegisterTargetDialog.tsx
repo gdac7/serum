@@ -3,6 +3,7 @@ import { useAuth } from "../../shared/auth/AuthContext";
 import { targetsApi } from "../../shared/api/targets";
 import { ApiError } from "../../shared/api/client";
 import type { TargetKind } from "../../shared/types/run";
+import { EndpointContract } from "../runs/EndpointContract";
 
 export function RegisterTargetDialog({
   onClose,
@@ -17,6 +18,9 @@ export function RegisterTargetDialog({
   const [load4Bits, setLoad4Bits] = useState(false);
   const [endpointUrl, setEndpointUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
+  const [promptField, setPromptField] = useState("");
+  const [responseField, setResponseField] = useState("");
+  const [showContract, setShowContract] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -44,6 +48,8 @@ export function RegisterTargetDialog({
               model_name: modelName.trim(),
               endpoint_url: endpointUrl.trim(),
               api_key: apiKey.trim() || undefined,
+              prompt_field: promptField.trim() || undefined,
+              response_field: responseField.trim() || undefined,
             },
       );
       onRegistered(res.target_id);
@@ -108,7 +114,25 @@ export function RegisterTargetDialog({
           ) : (
             <>
               <div className="field">
-                <label>Endpoint URL</label>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "var(--space-2)",
+                  }}
+                >
+                  <label style={{ margin: 0 }}>Endpoint URL</label>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ fontSize: 12, padding: "2px 10px" }}
+                    onClick={() => setShowContract((v) => !v)}
+                  >
+                    Endpoint format
+                  </button>
+                </div>
+                {showContract && <EndpointContract />}
                 <input
                   className="input"
                   type="url"
@@ -127,6 +151,27 @@ export function RegisterTargetDialog({
                   onChange={(e) => setApiKey(e.target.value)}
                 />
               </div>
+              <details>
+                <summary style={{ cursor: "pointer", fontSize: 13 }}>Advanced</summary>
+                <div className="field" style={{ marginTop: "var(--space-2)" }}>
+                  <label>Request prompt field</label>
+                  <input
+                    className="input"
+                    placeholder="input_text"
+                    value={promptField}
+                    onChange={(e) => setPromptField(e.target.value)}
+                  />
+                </div>
+                <div className="field">
+                  <label>Response text field</label>
+                  <input
+                    className="input"
+                    placeholder="output"
+                    value={responseField}
+                    onChange={(e) => setResponseField(e.target.value)}
+                  />
+                </div>
+              </details>
             </>
           )}
 

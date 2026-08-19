@@ -31,6 +31,8 @@ export interface TargetConfig {
   endpoint_url?: string;
   // The decrypted bearer token, forwarded over the internal network only.
   api_key?: string;
+  prompt_field?: string;
+  response_field?: string;
 }
 
 export interface TargetCreateResponse {

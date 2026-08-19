@@ -45,6 +45,9 @@ export const createRunSchema = z
     load_4_bits: z.boolean().default(false),
     endpoint_url: z.string().optional(),
     api_key: z.string().optional(),
+    // Endpoints that don't use the default "input_text" in / "output" out keys.
+    prompt_field: z.string().min(1).optional(),
+    response_field: z.string().min(1).optional(),
   })
   .superRefine(refineApiTarget)
   .superRefine((val, ctx) => {
@@ -76,6 +79,9 @@ export const registerTargetSchema = z
     load_4_bits: z.boolean().default(false),
     endpoint_url: z.string().optional(),
     api_key: z.string().optional(),
+    // Endpoints that don't use the default "input_text" in / "output" out keys.
+    prompt_field: z.string().min(1).optional(),
+    response_field: z.string().min(1).optional(),
   })
   .superRefine(refineApiTarget);
 

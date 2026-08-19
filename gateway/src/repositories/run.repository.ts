@@ -14,6 +14,8 @@ export interface RunRow {
   target_kind: string;
   endpoint_url: string | null;
   encrypted_api_key: string | null;
+  prompt_field: string | null;
+  response_field: string | null;
   standard_dataset: string | null;
   standard_dataset_percent: number | null;
   error: string | null;
@@ -33,6 +35,8 @@ export interface NewRun {
   targetKind: string;
   endpointUrl: string | null;
   encryptedApiKey: string | null;
+  promptField: string | null;
+  responseField: string | null;
   standardDataset: string | null;
   standardDatasetPercent: number | null;
 }
@@ -42,9 +46,9 @@ export const runRepository = {
     const { rows } = await pool.query<RunRow>(
       `INSERT INTO runs
          (user_id, model_name, phases, dataset, fresh_library, load_4_bits,
-          target_kind, endpoint_url, encrypted_api_key,
+          target_kind, endpoint_url, encrypted_api_key, prompt_field, response_field,
           standard_dataset, standard_dataset_percent)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        RETURNING *`,
       [
         run.userId,
@@ -56,6 +60,8 @@ export const runRepository = {
         run.targetKind,
         run.endpointUrl,
         run.encryptedApiKey,
+        run.promptField,
+        run.responseField,
         run.standardDataset,
         run.standardDatasetPercent,
       ],
