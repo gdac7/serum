@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../../shared/auth/AuthContext";
-import { targetsApi } from "../../shared/api/targets";
+import { targetsApi, type ProbeResult, type RegisterTargetInput } from "../../shared/api/targets";
 import { ApiError } from "../../shared/api/client";
 import type { TargetKind } from "../../shared/types/run";
 import { EndpointContract } from "../runs/EndpointContract";
@@ -23,6 +23,38 @@ export function RegisterTargetDialog({
   const [showContract, setShowContract] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [probe, setProbe] = useState<ProbeResult | null>(null);
+  const [probing, setProbing] = useState(false);
+
+  function payload(): RegisterTargetInput {
+    return kind === "local"
+      ? { kind: "local", model_name: modelName.trim(), load_4_bits: load4Bits }
+      : {
+          kind: "api",
+          model_name: modelName.trim(),
+          endpoint_url: endpointUrl.trim(),
+          api_key: apiKey.trim() || undefined,
+          prompt_field: promptField.trim() || undefined,
+          response_field: responseField.trim() || undefined,
+        };
+  }
+
+  async function testConnection() {
+    if (!token) return;
+    setProbe(null);
+    setProbing(true);
+    try {
+      setProbe(await targetsApi.probe(token, payload()));
+    } catch (err) {
+      setProbe({
+        ok: false,
+        code: "request_failed",
+        message: err instanceof ApiError ? err.message : "could not test the endpoint",
+      });
+    } finally {
+      setProbing(false);
+    }
+  }
 
   async function submit() {
     setError(null);
@@ -39,19 +71,7 @@ export function RegisterTargetDialog({
 
     setSubmitting(true);
     try {
-      const res = await targetsApi.register(
-        token,
-        kind === "local"
-          ? { kind: "local", model_name: modelName.trim(), load_4_bits: load4Bits }
-          : {
-              kind: "api",
-              model_name: modelName.trim(),
-              endpoint_url: endpointUrl.trim(),
-              api_key: apiKey.trim() || undefined,
-              prompt_field: promptField.trim() || undefined,
-              response_field: responseField.trim() || undefined,
-            },
-      );
+      const res = await targetsApi.register(token, payload());
       onRegistered(res.target_id);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "failed to register target");
@@ -138,7 +158,10 @@ export function RegisterTargetDialog({
                   type="url"
                   placeholder="https://your-model.example.com/generate"
                   value={endpointUrl}
-                  onChange={(e) => setEndpointUrl(e.target.value)}
+                  onChange={(e) => {
+                    setEndpointUrl(e.target.value);
+                    setProbe(null);
+                  }}
                 />
               </div>
               <div className="field">
@@ -148,7 +171,10 @@ export function RegisterTargetDialog({
                   type="password"
                   placeholder="bearer token, if your endpoint needs one"
                   value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
+                  onChange={(e) => {
+                    setApiKey(e.target.value);
+                    setProbe(null);
+                  }}
                 />
               </div>
               <details>
@@ -159,7 +185,10 @@ export function RegisterTargetDialog({
                     className="input"
                     placeholder="input_text"
                     value={promptField}
-                    onChange={(e) => setPromptField(e.target.value)}
+                    onChange={(e) => {
+                      setPromptField(e.target.value);
+                      setProbe(null);
+                    }}
                   />
                 </div>
                 <div className="field">
@@ -168,11 +197,35 @@ export function RegisterTargetDialog({
                     className="input"
                     placeholder="output"
                     value={responseField}
-                    onChange={(e) => setResponseField(e.target.value)}
+                    onChange={(e) => {
+                      setResponseField(e.target.value);
+                      setProbe(null);
+                    }}
                   />
                 </div>
               </details>
             </>
+          )}
+
+          {kind === "api" && (
+            <div style={{ display: "grid", gap: "var(--space-2)" }}>
+              <div>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={testConnection}
+                  disabled={probing || !endpointUrl.trim()}
+                >
+                  {probing ? "Testing…" : "Test connection"}
+                </button>
+              </div>
+              {probe &&
+                (probe.ok ? (
+                  <div className="form-note">Endpoint replied: “{probe.sample.slice(0, 200)}”</div>
+                ) : (
+                  <div className="form-error">{probe.message}</div>
+                ))}
+            </div>
           )}
 
           {error && <div className="form-error">{error}</div>}

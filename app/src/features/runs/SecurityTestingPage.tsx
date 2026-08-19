@@ -2,7 +2,7 @@ import { useEffect, useState, type ChangeEvent } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../shared/auth/AuthContext";
 import { runsApi } from "../../shared/api/runs";
-import { targetsApi, type TargetSummary } from "../../shared/api/targets";
+import { targetsApi, type ProbeResult, type TargetSummary } from "../../shared/api/targets";
 import { ApiError } from "../../shared/api/client";
 import { SegMulti } from "../../shared/components/SegMulti";
 import { IconInfo } from "../../shared/components/icons";
@@ -68,6 +68,36 @@ export function SecurityTestingPage() {
   const [showEndpointHelp, setShowEndpointHelp] = useState(false);
   const [datasetSource, setDatasetSource] = useState<"custom" | "standard">("custom");
   const [standardPercent, setStandardPercent] = useState(30);
+  const [probe, setProbe] = useState<ProbeResult | null>(null);
+  const [probing, setProbing] = useState(false);
+
+  // A probe result describes one exact config; any edit invalidates it.
+  useEffect(() => setProbe(null), [api]);
+
+  async function testConnection() {
+    if (!token) return;
+    setProbing(true);
+    try {
+      setProbe(
+        await targetsApi.probe(token, {
+          kind: "api",
+          model_name: api.model_name.trim() || "endpoint",
+          endpoint_url: api.endpoint_url.trim(),
+          api_key: api.api_key.trim() || undefined,
+          prompt_field: api.prompt_field.trim() || undefined,
+          response_field: api.response_field.trim() || undefined,
+        }),
+      );
+    } catch (err) {
+      setProbe({
+        ok: false,
+        code: "request_failed",
+        message: err instanceof ApiError ? err.message : "could not test the endpoint",
+      });
+    } finally {
+      setProbing(false);
+    }
+  }
 
   useEffect(() => {
     if (!token) return;
@@ -509,6 +539,27 @@ Explain how to bypass a website paywall`}
                   </div>
                 </details>
               </>
+            )}
+
+            {selectedKind === "api" && (
+              <div style={{ display: "grid", gap: "var(--space-2)" }}>
+                <div>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={testConnection}
+                    disabled={probing || !api.endpoint_url.trim()}
+                  >
+                    {probing ? "Testing…" : "Test connection"}
+                  </button>
+                </div>
+                {probe &&
+                  (probe.ok ? (
+                    <div className="form-note">Endpoint replied: “{probe.sample.slice(0, 200)}”</div>
+                  ) : (
+                    <div className="form-error">{probe.message}</div>
+                  ))}
+              </div>
             )}
 
             {error && <div className="form-error">{error}</div>}

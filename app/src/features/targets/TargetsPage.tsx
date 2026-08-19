@@ -89,7 +89,10 @@ export function TargetsPage() {
                     <td className="text-muted">
                       {t.kind === "local" ? (t.load_4_bits ? "yes" : "no") : "—"}
                     </td>
-                    <td className="text-muted">{t.in_use ? "in a test" : t.status}</td>
+                    <td className="text-muted">
+                      {t.in_use ? "in a test" : t.status}
+                      {t.error && <div className="cell-error">{t.error}</div>}
+                    </td>
                     <td className="text-muted">{formatDate(t.created_at)}</td>
                   </tr>
                 ))}

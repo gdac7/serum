@@ -222,7 +222,7 @@ export function ChatPage() {
                 }}
               >
                 <div className="list-item-title">{t.model_name}</div>
-                <div className="list-item-subtitle">
+                <div className="list-item-subtitle" title={t.error ?? undefined}>
                   {t.kind} · {t.in_use ? "in a test" : t.status}
                 </div>
               </button>
@@ -264,6 +264,12 @@ export function ChatPage() {
         </div>
 
         {error && <div className="form-error" style={{ margin: "var(--space-4)" }}>{error}</div>}
+
+        {activeTarget?.error && (
+          <div className="form-error" style={{ margin: "var(--space-4)" }}>
+            {activeTarget.error}
+          </div>
+        )}
 
         <div
           style={{

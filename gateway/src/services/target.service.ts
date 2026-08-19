@@ -4,6 +4,8 @@ import { runRepository } from "../repositories/run.repository";
 import { redTeamClient, RedTeamServiceError, TargetConfig } from "../infra/redteam.client";
 import { encrypt, decrypt } from "../infra/crypto";
 import { ensureTargetLoaded } from "./target-loader";
+import { assertEndpointReachable } from "./endpoint-check";
+import { probeEndpoint, ProbeResult } from "../infra/endpoint-probe";
 import type { RegisterTargetInput } from "../domain/dto";
 
 // in_use marks a target whose model is running a test right now: the run holds
@@ -44,6 +46,8 @@ export const targetService = {
   // Returns immediately with Python's initial status; the client polls
   // GET /targets/:id (or just starts a chat, which waits for it itself).
   async register(userId: string, input: RegisterTargetInput) {
+    await assertEndpointReachable(input);
+
     const row = await targetRepository.create({
       userId,
       kind: input.kind,
@@ -108,6 +112,42 @@ export const targetService = {
     }
 
     await targetRepository.delete(id, userId);
+  },
+
+  // Probes a config the user has typed but not saved, so the form can report
+  // a broken endpoint without leaving a dead target row behind.
+  async probe(input: RegisterTargetInput): Promise<ProbeResult> {
+    if (input.kind !== "api" || !input.endpoint_url) {
+      return { ok: false, code: "dns", message: "only kind:api targets have an endpoint to test" };
+    }
+    return probeEndpoint(input.endpoint_url, {
+      apiKey: input.api_key,
+      promptField: input.prompt_field,
+      responseField: input.response_field,
+    });
+  },
+
+  // Re-probes a saved target. A registered endpoint can go down later, and
+  // Python's view of it never changes once loaded -- it only holds a config.
+  async test(userId: string, id: string): Promise<ProbeResult> {
+    const row = await targetRepository.findByIdForUser(id, userId);
+    if (!row) throw new HttpError(404, "target not found");
+    if (row.kind !== "api" || !row.endpoint_url) {
+      throw new HttpError(400, "only kind:api targets have an endpoint to test");
+    }
+
+    const result = await probeEndpoint(row.endpoint_url, {
+      apiKey: row.encrypted_api_key ? decrypt(row.encrypted_api_key) : undefined,
+      promptField: row.prompt_field ?? undefined,
+      responseField: row.response_field ?? undefined,
+    });
+
+    await targetRepository.setStatus(
+      row.id,
+      result.ok ? row.status : "failed",
+      result.ok ? null : result.message,
+    );
+    return result;
   },
 
   async loadTarget(userId: string, id: string): Promise<TargetRow> {

@@ -4,6 +4,7 @@ import { runRepository, RunRow } from "../repositories/run.repository";
 import { runsQueue } from "../infra/queue";
 import { redTeamClient, RedTeamServiceError } from "../infra/redteam.client";
 import { encrypt } from "../infra/crypto";
+import { assertEndpointReachable } from "./endpoint-check";
 
 function shapeRun(run: RunRow) {
   return {
@@ -55,6 +56,8 @@ async function fromPython<T>(
 
 export const runService = {
   async createRun(userId: string, input: CreateRunInput) {
+    await assertEndpointReachable(input);
+
     const run = await runRepository.create({
       userId,
       modelName: input.model_name,

@@ -28,6 +28,10 @@ export interface RegisterTargetInput {
   response_field?: string;
 }
 
+export type ProbeResult =
+  | { ok: true; sample: string }
+  | { ok: false; code: string; message: string };
+
 export const targetsApi = {
   list: (token: string) => apiRequest<TargetSummary[]>("GET", "/targets", token),
 
@@ -36,6 +40,12 @@ export const targetsApi = {
 
   register: (token: string, input: RegisterTargetInput) =>
     apiRequest<{ target_id: string; status: TargetStatus }>("POST", "/targets", token, input),
+
+  probe: (token: string, input: RegisterTargetInput) =>
+    apiRequest<ProbeResult>("POST", "/targets/probe", token, input),
+
+  test: (token: string, id: string) =>
+    apiRequest<ProbeResult>("POST", `/targets/${id}/test`, token),
 
   remove: (token: string, id: string) =>
     apiRequest<void>("DELETE", `/targets/${id}`, token),

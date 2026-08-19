@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isAllowedEndpointUrl, isPublicHttpsUrl } from "../src/infra/url-guard";
+import { endpointUrlProblem, isAllowedEndpointUrl, isPublicHttpsUrl } from "../src/infra/url-guard";
 
 describe("isPublicHttpsUrl", () => {
   it("accepts a public https url", () => {
@@ -34,5 +34,25 @@ describe("isAllowedEndpointUrl", () => {
   it("defaults to the public-https guard", () => {
     expect(isAllowedEndpointUrl("https://api.example.com/generate")).toBe(true);
     expect(isAllowedEndpointUrl("https://localhost:7000/gentext/")).toBe(false);
+  });
+});
+
+describe("endpointUrlProblem", () => {
+  it("passes a public https url", () => {
+    expect(endpointUrlProblem("https://api.example.com/generate")).toBeNull();
+  });
+
+  it("explains that a private host resolves on our side, naming it", () => {
+    const problem = endpointUrlProblem("https://localhost:7070/gentext/");
+    expect(problem).toContain("localhost");
+    expect(problem).toContain("our own machine");
+  });
+
+  it("distinguishes a plain http url from a private one", () => {
+    expect(endpointUrlProblem("http://api.example.com")).toContain("https");
+  });
+
+  it("reports a malformed url as such", () => {
+    expect(endpointUrlProblem("not a url")).toContain("not a valid URL");
   });
 });

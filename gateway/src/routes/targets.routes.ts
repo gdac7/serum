@@ -24,6 +24,28 @@ targetsRouter.post(
   },
 );
 
+// Declared before "/targets/:id" routes so "probe" is never read as an id.
+targetsRouter.post(
+  "/targets/probe",
+  requireAuth,
+  validateBody(registerTargetSchema),
+  async (req, res, next) => {
+    try {
+      res.json(await targetService.probe(req.body));
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+targetsRouter.post("/targets/:id/test", requireAuth, async (req, res, next) => {
+  try {
+    res.json(await targetService.test(req.user!.id, req.params.id));
+  } catch (err) {
+    next(err);
+  }
+});
+
 targetsRouter.get("/targets", requireAuth, async (req, res, next) => {
   try {
     res.json(await targetService.list(req.user!.id));
