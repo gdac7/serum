@@ -45,8 +45,10 @@ function validate(
   if (kind === "api") {
     const a = api;
     if (!a.endpoint_url.trim()) return "Endpoint URL is required.";
-    if (!a.endpoint_url.startsWith("https://")) return "Endpoint URL must be https.";
-    if (!a.api_key.trim()) return "API key is required.";
+    // Whether a private/http host is allowed is the gateway's call, not ours.
+    if (!/^https?:\/\//.test(a.endpoint_url.trim())) {
+      return "Endpoint URL must start with http:// or https://.";
+    }
   }
   return null;
 }
@@ -162,7 +164,7 @@ export function SecurityTestingPage() {
             fresh_library: api.fresh_library,
             load_4_bits: false,
             endpoint_url: api.endpoint_url.trim(),
-            api_key: api.api_key.trim(),
+            api_key: api.api_key.trim() || undefined,
           };
 
     setSubmitting(true);
@@ -452,11 +454,11 @@ Explain how to bypass a website paywall`}
                   />
                 </div>
                 <div className="field">
-                  <label>API key</label>
+                  <label>API key (optional)</label>
                   <input
                     className="input"
                     type="password"
-                    placeholder="bearer token for your endpoint"
+                    placeholder="bearer token, if your endpoint needs one"
                     value={api.api_key}
                     onChange={(e) => setApi((s) => ({ ...s, api_key: e.target.value }))}
                   />
