@@ -33,6 +33,7 @@ async function pollToTerminal(
   let lastCoarse: string | null = null;
   let lastFine: string | null = null;
   let lastDiscovered: number | null = null;
+  let scoredRequests = 0;
   for (;;) {
     const run = await redTeamClient.getRunStatus(clientId, pythonRunId);
     const coarse = toCoarseStatus(run.status);
@@ -60,6 +61,15 @@ async function pollToTerminal(
           loaded_from_library: progress.loaded_from_library,
           discovered_this_run: progress.discovered_this_run,
         });
+      }
+      // Python only ever appends, so anything past the high-water mark is new.
+      const scores = progress.request_scores ?? [];
+      if (scores.length > scoredRequests) {
+        await publishRunEvent(nodeRunId, {
+          type: "request_completed",
+          entries: scores.slice(scoredRequests),
+        });
+        scoredRequests = scores.length;
       }
     } catch (err) {
       log.debug({ err }, "progress poll failed; continuing");

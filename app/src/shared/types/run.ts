@@ -95,6 +95,18 @@ export interface StrategyProgress {
   score_j: number | null;
 }
 
+// One malicious request that finished all its attack iterations in a phase.
+export interface RequestScore {
+  phase: string;
+  request_index: number;
+  total_requests: number;
+  malicious_request: string;
+  attempts: number;
+  average_score: number | null;
+  best_score: number | null;
+  completed_at: string;
+}
+
 export interface RunProgress {
   run_id: string;
   status: string;
@@ -102,6 +114,7 @@ export interface RunProgress {
   loaded_from_library: number | null;
   discovered_this_run: number | null;
   persist_errors: string[];
+  request_scores: RequestScore[];
   strategies: StrategyProgress[];
 }
 
