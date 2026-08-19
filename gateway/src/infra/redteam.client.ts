@@ -159,7 +159,7 @@ export class RedTeamServiceError extends Error {
 }
 
 async function request<T>(
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "DELETE",
   path: string,
   body?: unknown,
 ): Promise<T> {
@@ -171,6 +171,7 @@ async function request<T>(
   if (!res.ok) {
     throw new RedTeamServiceError(res.status, path, await res.text());
   }
+  if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
 
@@ -193,6 +194,9 @@ export const redTeamClient = {
       "GET",
       `/v1/target_health/${targetId}?client_id=${clientId}`,
     ),
+
+  deleteTarget: (clientId: string, targetId: string) =>
+    request<void>("DELETE", `/v1/targets/${targetId}?client_id=${clientId}`),
 
   startRun: (body: StartRunBody) =>
     request<RunCreateResponse>("POST", "/v1/runs", body),

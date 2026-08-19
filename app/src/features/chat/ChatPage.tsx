@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { useAuth } from "../../shared/auth/AuthContext";
 import { targetsApi, type TargetSummary } from "../../shared/api/targets";
 import { streamChat } from "../../shared/api/chat";
 import { ApiError } from "../../shared/api/client";
-import { IconPlus, IconSend } from "../../shared/components/icons";
+import { IconPlus, IconSend, IconTrash } from "../../shared/components/icons";
 import { RegisterTargetDialog } from "./RegisterTargetDialog";
 
 interface ChatMessage {
@@ -22,6 +22,7 @@ export function ChatPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [registerOpen, setRegisterOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [messagesByTarget, setMessagesByTarget] = useState<Record<string, ChatMessage[]>>({});
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -84,6 +85,29 @@ export function ChatPage() {
     abortRef.current?.abort();
     setSending(false);
     setActiveId(id);
+  }
+
+  async function deleteTarget(e: MouseEvent, t: TargetSummary) {
+    e.stopPropagation();
+    if (!token || t.in_use) return;
+    if (!window.confirm(`Delete target "${t.model_name}"? This can't be undone.`)) return;
+
+    setDeletingId(t.target_id);
+    try {
+      await targetsApi.remove(token, t.target_id);
+      setTargets((prev) => prev?.filter((x) => x.target_id !== t.target_id) ?? prev);
+      setMessagesByTarget((prev) => {
+        const { [t.target_id]: _removed, ...rest } = prev;
+        return rest;
+      });
+      setActiveId((prev) => (prev === t.target_id ? null : prev));
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : "couldn't reach the server — check the gateway is running",
+      );
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   function onRegistered(targetId: string) {
@@ -177,17 +201,43 @@ export function ChatPage() {
         </button>
         <div style={{ display: "flex", flexDirection: "column", marginTop: "var(--space-3)" }}>
           {targets?.map((t) => (
-            <button
+            <div
               key={t.target_id}
-              type="button"
               className={`list-item${t.target_id === activeId ? " is-active" : ""}`}
-              onClick={() => selectTarget(t.target_id)}
+              style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}
             >
-              <div className="list-item-title">{t.model_name}</div>
-              <div className="list-item-subtitle">
-                {t.kind} · {t.in_use ? "in a test" : t.status}
-              </div>
-            </button>
+              <button
+                type="button"
+                onClick={() => selectTarget(t.target_id)}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  textAlign: "left",
+                  cursor: "pointer",
+                  color: "inherit",
+                  font: "inherit",
+                }}
+              >
+                <div className="list-item-title">{t.model_name}</div>
+                <div className="list-item-subtitle">
+                  {t.kind} · {t.in_use ? "in a test" : t.status}
+                </div>
+              </button>
+              <button
+                type="button"
+                className="btn-ghost"
+                aria-label={`Delete ${t.model_name}`}
+                title={t.in_use ? "In use by an active run" : "Delete target"}
+                disabled={t.in_use || deletingId === t.target_id}
+                onClick={(e) => deleteTarget(e, t)}
+                style={{ flexShrink: 0, opacity: t.in_use ? 0.35 : undefined }}
+              >
+                <IconTrash />
+              </button>
+            </div>
           ))}
           {targets && targets.length === 0 && (
             <p className="empty-state">No targets yet. Register one to begin chatting.</p>

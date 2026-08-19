@@ -32,4 +32,7 @@ export const targetsApi = {
 
   register: (token: string, input: RegisterTargetInput) =>
     apiRequest<{ target_id: string; status: TargetStatus }>("POST", "/targets", token, input),
+
+  remove: (token: string, id: string) =>
+    apiRequest<void>("DELETE", `/targets/${id}`, token),
 };

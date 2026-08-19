@@ -1,7 +1,7 @@
 import { HttpError } from "../domain/errors";
 import { targetRepository, TargetRow } from "../repositories/target.repository";
 import { runRepository } from "../repositories/run.repository";
-import { redTeamClient, TargetConfig } from "../infra/redteam.client";
+import { redTeamClient, RedTeamServiceError, TargetConfig } from "../infra/redteam.client";
 import { encrypt, decrypt } from "../infra/crypto";
 import { ensureTargetLoaded } from "./target-loader";
 import type { RegisterTargetInput } from "../domain/dto";
@@ -79,6 +79,29 @@ export const targetService = {
       { ...row, status: health.status, error: health.error ?? null },
       active.includes(row.python_target_id),
     );
+  },
+
+  // Refuses while an active run holds the target (mirrors the `in_use` flag
+  // `list`/`refresh` compute) rather than ripping GPU weights out from under
+  // it. Deleting Python's registration never touches the strategy library --
+  // that's keyed by target_key, not target_id, so it survives.
+  async remove(userId: string, id: string): Promise<void> {
+    const row = await targetRepository.findByIdForUser(id, userId);
+    if (!row) throw new HttpError(404, "target not found");
+
+    if (row.python_target_id) {
+      const active = await runRepository.activeTargetIds(userId);
+      if (active.includes(row.python_target_id)) {
+        throw new HttpError(409, "target is in use by an active run");
+      }
+      try {
+        await redTeamClient.deleteTarget(userId, row.python_target_id);
+      } catch (err) {
+        if (!(err instanceof RedTeamServiceError && err.status === 404)) throw err;
+      }
+    }
+
+    await targetRepository.delete(id, userId);
   },
 
   async loadTarget(userId: string, id: string): Promise<TargetRow> {

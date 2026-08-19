@@ -19,7 +19,7 @@ async function parseErrorBody(res: Response): Promise<string> {
 }
 
 export async function apiRequest<T>(
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "DELETE",
   path: string,
   token: string | null,
   body?: unknown,

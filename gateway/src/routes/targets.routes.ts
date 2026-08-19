@@ -40,6 +40,15 @@ targetsRouter.get("/targets/:id", requireAuth, async (req, res, next) => {
   }
 });
 
+targetsRouter.delete("/targets/:id", requireAuth, async (req, res, next) => {
+  try {
+    await targetService.remove(req.user!.id, req.params.id);
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+});
+
 targetsRouter.post(
   "/targets/:id/chat",
   requireAuth,

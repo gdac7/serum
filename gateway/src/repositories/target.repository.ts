@@ -72,4 +72,12 @@ export const targetRepository = {
       [id, status, error],
     );
   },
+
+  async delete(id: string, userId: string): Promise<boolean> {
+    const { rowCount } = await pool.query(
+      "DELETE FROM targets WHERE id = $1 AND user_id = $2",
+      [id, userId],
+    );
+    return (rowCount ?? 0) > 0;
+  },
 };
