@@ -317,9 +317,21 @@ export function RunResultsPage() {
             />
 
             <div style={{ flex: "0 0 300px", position: "sticky", top: "var(--space-6)" }}>
-              <h1 className="section-title" style={{ textAlign: "center" }}>Jailbreak Results</h1>
+              <h1
+                className="section-title"
+                style={{ textAlign: "center", paddingBottom: "var(--space-4)" }}
+              >
+                Jailbreak Results
+              </h1>
               {results.metrics ? (
-                <div style={{ display: "flex", gap: "var(--space-4)" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    gap: "var(--space-6)",
+                    marginTop: "var(--space-6)",
+                  }}
+                >
                   <div style={{ flex: 1 }}>
                     <div className="metric-circle">
                       <div className="metric-value">{(results.metrics.asr * 100).toFixed(0)}%</div>
