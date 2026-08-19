@@ -1,0 +1,17 @@
+models:
+  shared: "meta-llama/Llama-3.1-8B-Instruct"
+  scorer: "google/gemma-1.1-7b-it"
+  embedding: "sentence-transformers/all-MiniLM-L6-v2"
+
+attack:
+  max_iterations_warmup: 50
+  max_iterations_lifelong: 50
+  termination_score: 8.5
+  max_summarization_iterations: 10
+strategy_library:
+  top_k_retrieval: 5
+  similarity_threshold: 0.7
+
+evaluation:
+  datasets: ["harmbench"]
+  metrics: ["asr", "strongreject"]
