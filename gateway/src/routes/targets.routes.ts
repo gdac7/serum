@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { registerTargetSchema, chatSchema } from "../domain/dto";
+import { registerTargetSchema, probeTargetSchema, chatSchema } from "../domain/dto";
 import { validateBody } from "../middleware/validate";
 import { requireAuth } from "../middleware/auth.middleware";
 import { targetService } from "../services/target.service";
@@ -29,7 +29,7 @@ targetsRouter.post(
 targetsRouter.post(
   "/targets/probe",
   requireAuth,
-  validateBody(registerTargetSchema),
+  validateBody(probeTargetSchema),
   async (req, res, next) => {
     try {
       res.json(await targetService.probe(req.body));

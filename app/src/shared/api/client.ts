@@ -8,11 +8,26 @@ export class ApiError extends Error {
   }
 }
 
+interface FieldIssue {
+  path?: string;
+  message?: string;
+}
+
 async function parseErrorBody(res: Response): Promise<string> {
   const text = await res.text();
   try {
     const json = JSON.parse(text);
-    return json.error ?? json.message ?? text;
+    const base = json.error ?? json.message ?? text;
+    // Validation failures carry the field and reason in `details`; without them
+    // the top-level "validation failed" says nothing the user can act on.
+    if (Array.isArray(json.details) && json.details.length > 0) {
+      const issues = (json.details as FieldIssue[])
+        .map((d) => (d.path ? `${d.path}: ${d.message}` : d.message))
+        .filter(Boolean)
+        .join("; ");
+      return issues ? `${base} — ${issues}` : base;
+    }
+    return base;
   } catch {
     return text || res.statusText;
   }

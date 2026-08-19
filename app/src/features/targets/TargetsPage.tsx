@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../shared/auth/AuthContext";
-import { targetsApi, type TargetSummary } from "../../shared/api/targets";
+import { targetsApi, type ProbeResult, type TargetSummary } from "../../shared/api/targets";
 import { ApiError } from "../../shared/api/client";
 
 const PAGE_SIZE = 8;
@@ -19,6 +19,30 @@ export function TargetsPage() {
   const [targets, setTargets] = useState<TargetSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
+  const [testing, setTesting] = useState<string | null>(null);
+  const [results, setResults] = useState<Record<string, ProbeResult>>({});
+
+  // Runs from the red-team service, not from here, so it answers the question
+  // that matters: whether the attack itself can reach the endpoint.
+  async function testTarget(id: string) {
+    if (!token) return;
+    setTesting(id);
+    try {
+      const result = await targetsApi.test(token, id);
+      setResults((r) => ({ ...r, [id]: result }));
+    } catch (err) {
+      setResults((r) => ({
+        ...r,
+        [id]: {
+          ok: false,
+          code: "request_failed",
+          message: err instanceof ApiError ? err.message : "could not test this target",
+        },
+      }));
+    } finally {
+      setTesting(null);
+    }
+  }
 
   useEffect(() => {
     if (!token) return;
@@ -78,6 +102,7 @@ export function TargetsPage() {
                   <th>4-bit</th>
                   <th>Status</th>
                   <th>Registered</th>
+                  <th />
                 </tr>
               </thead>
               <tbody>
@@ -92,8 +117,32 @@ export function TargetsPage() {
                     <td className="text-muted">
                       {t.in_use ? "in a test" : t.status}
                       {t.error && <div className="cell-error">{t.error}</div>}
+                      {results[t.target_id] &&
+                        (results[t.target_id].ok ? (
+                          <div className="form-note" style={{ marginTop: "var(--space-1)" }}>
+                            Replied: “{(results[t.target_id] as { sample: string }).sample.slice(0, 120)}”
+                          </div>
+                        ) : (
+                          <div className="cell-error">
+                            {(results[t.target_id] as { message: string }).message}
+                          </div>
+                        ))}
                     </td>
                     <td className="text-muted">{formatDate(t.created_at)}</td>
+                    <td>
+                      {t.kind !== "local" && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          style={{ fontSize: 12, padding: "2px 10px" }}
+                          disabled={testing === t.target_id || t.in_use}
+                          title={t.in_use ? "In use by an active run" : "Send a test prompt"}
+                          onClick={() => testTarget(t.target_id)}
+                        >
+                          {testing === t.target_id ? "Testing…" : "Test"}
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

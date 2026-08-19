@@ -114,6 +114,20 @@ export const registerTargetSchema = z
 
 export type RegisterTargetInput = z.infer<typeof registerTargetSchema>;
 
+// Probing asks "does this endpoint answer", which needs no model name -- the
+// label is only meaningful once a target is being saved.
+export const probeTargetSchema = z
+  .object({
+    kind: z.enum(["local", "api", "connector"]).default("api"),
+    endpoint_url: z.string().optional(),
+    api_key: z.string().optional(),
+    prompt_field: z.string().min(1).optional(),
+    response_field: z.string().min(1).optional(),
+  })
+  .superRefine(refineApiTarget);
+
+export type ProbeTargetInput = z.infer<typeof probeTargetSchema>;
+
 export const chatSchema = z.object({
   message: z.string().min(1),
   system_prompt: z.string().optional(),

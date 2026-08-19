@@ -6,9 +6,9 @@ import { encrypt, decrypt } from "../infra/crypto";
 import { ensureTargetLoaded } from "./target-loader";
 import { assertEndpointReachable } from "./endpoint-check";
 import { probeEndpoint, ProbeResult } from "../infra/endpoint-probe";
-import { connectorTargetConfig, bridgeUrl } from "../domain/target-config";
-import { env } from "../config/env";
-import type { RegisterTargetInput } from "../domain/dto";
+import { probeFromService } from "./service-probe";
+import { connectorTargetConfig } from "../domain/target-config";
+import type { ProbeTargetInput, RegisterTargetInput } from "../domain/dto";
 
 // in_use marks a target whose model is running a test right now: the run holds
 // the GPU, so chat is unavailable until it finishes.
@@ -123,7 +123,7 @@ export const targetService = {
 
   // Probes a config the user has typed but not saved, so the form can report
   // a broken endpoint without leaving a dead target row behind.
-  async probe(input: RegisterTargetInput): Promise<ProbeResult> {
+  async probe(input: ProbeTargetInput): Promise<ProbeResult> {
     if (input.kind !== "api" || !input.endpoint_url) {
       return { ok: false, code: "dns", message: "only kind:api targets have an endpoint to test" };
     }
@@ -134,8 +134,8 @@ export const targetService = {
     });
   },
 
-  // Re-probes a saved target. A registered endpoint can go down later, and
-  // Python's view of it never changes once loaded -- it only holds a config.
+  // Re-checks a saved target. A registered endpoint can go down later, and the
+  // service's view of it never changes once loaded -- it only holds a config.
   async test(userId: string, id: string): Promise<ProbeResult> {
     const row = await targetRepository.findByIdForUser(id, userId);
     if (!row) throw new HttpError(404, "target not found");
@@ -146,20 +146,12 @@ export const targetService = {
       throw new HttpError(400, "target has no endpoint to test");
     }
 
-    // For a connector this walks the whole path the service will use -- bridge,
-    // queue, the user's connector, their model -- so a broken INTERNAL_BASE_URL
-    // or a connector that is not running surfaces here rather than mid-run.
-    const result =
-      row.kind === "connector"
-        ? await probeEndpoint(bridgeUrl(row.id), {
-            apiKey: env.BRIDGE_SECRET,
-            allowPrivateHost: true,
-          })
-        : await probeEndpoint(row.endpoint_url!, {
-            apiKey: row.encrypted_api_key ? decrypt(row.encrypted_api_key) : undefined,
-            promptField: row.prompt_field ?? undefined,
-            responseField: row.response_field ?? undefined,
-          });
+    // Probing from here answers the wrong question: the gateway and the service
+    // resolve names on different hosts, so an endpoint we can reach may still be
+    // unreachable from where the attack actually runs. Ask the service instead --
+    // for a connector this also walks the bridge, the queue and the user's agent.
+    const { clientId, targetId } = await this.ensureLoaded(row);
+    const result = await probeFromService(clientId, targetId);
 
     await targetRepository.setStatus(
       row.id,
