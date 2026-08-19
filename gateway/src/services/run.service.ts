@@ -65,6 +65,8 @@ export const runService = {
       targetKind: input.kind,
       endpointUrl: input.endpoint_url ?? null,
       encryptedApiKey: input.api_key ? encrypt(input.api_key) : null,
+      promptField: input.prompt_field ?? null,
+      responseField: input.response_field ?? null,
       standardDataset: input.standard_dataset ?? null,
       standardDatasetPercent: input.standard_dataset_percent ?? null,
     });

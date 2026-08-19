@@ -114,6 +114,8 @@ export async function processRun(job: Job<RunJobData>): Promise<void> {
             model_name: run.model_name,
             endpoint_url: run.endpoint_url ?? undefined,
             api_key: run.encrypted_api_key ? decrypt(run.encrypted_api_key) : undefined,
+            prompt_field: run.prompt_field ?? undefined,
+            response_field: run.response_field ?? undefined,
           }
         : {
             kind: "local",

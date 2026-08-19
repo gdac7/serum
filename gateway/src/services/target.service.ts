@@ -14,6 +14,8 @@ function shapeTarget(t: TargetRow, inUse = false) {
     kind: t.kind,
     model_name: t.model_name,
     endpoint_url: t.endpoint_url,
+    prompt_field: t.prompt_field,
+    response_field: t.response_field,
     load_4_bits: t.load_4_bits,
     status: t.status,
     error: t.error,
@@ -30,6 +32,8 @@ function configFromRow(t: TargetRow): TargetConfig {
         model_name: t.model_name,
         endpoint_url: t.endpoint_url ?? undefined,
         api_key: t.encrypted_api_key ? decrypt(t.encrypted_api_key) : undefined,
+        prompt_field: t.prompt_field ?? undefined,
+        response_field: t.response_field ?? undefined,
       }
     : { kind: "local", model_name: t.model_name, load_4_bits: t.load_4_bits };
 }
@@ -46,6 +50,8 @@ export const targetService = {
       modelName: input.model_name,
       endpointUrl: input.endpoint_url ?? null,
       encryptedApiKey: input.api_key ? encrypt(input.api_key) : null,
+      promptField: input.prompt_field ?? null,
+      responseField: input.response_field ?? null,
       load4Bits: input.load_4_bits,
     });
 

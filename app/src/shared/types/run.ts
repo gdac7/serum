@@ -129,6 +129,8 @@ export interface CreateRunInput {
   load_4_bits: boolean;
   endpoint_url?: string;
   api_key?: string;
+  prompt_field?: string;
+  response_field?: string;
 }
 
 export interface CreateRunResponse {

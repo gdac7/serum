@@ -6,6 +6,7 @@ import { targetsApi, type TargetSummary } from "../../shared/api/targets";
 import { ApiError } from "../../shared/api/client";
 import { SegMulti } from "../../shared/components/SegMulti";
 import { IconInfo } from "../../shared/components/icons";
+import { EndpointContract } from "./EndpointContract";
 import { APPROACH, KIND_DEFS, LOCAL_MODELS, PHASE_OPTIONS, DEFAULT_LOCAL_FORM, DEFAULT_API_FORM } from "./kinds";
 import type { LocalFormState, ApiFormState } from "./kinds";
 import { parseDatasetFile } from "./datasetFile";
@@ -64,6 +65,7 @@ export function SecurityTestingPage() {
   const [targets, setTargets] = useState<TargetSummary[]>([]);
   const [selectedTargetId, setSelectedTargetId] = useState(NEW_TARGET);
   const [showFormatHelp, setShowFormatHelp] = useState(false);
+  const [showEndpointHelp, setShowEndpointHelp] = useState(false);
   const [datasetSource, setDatasetSource] = useState<"custom" | "standard">("custom");
   const [standardPercent, setStandardPercent] = useState(30);
 
@@ -101,6 +103,8 @@ export function SecurityTestingPage() {
         ...s,
         model_name: t.model_name,
         endpoint_url: t.endpoint_url ?? "",
+        prompt_field: t.prompt_field ?? "",
+        response_field: t.response_field ?? "",
       }));
     }
   }
@@ -165,6 +169,8 @@ export function SecurityTestingPage() {
             load_4_bits: false,
             endpoint_url: api.endpoint_url.trim(),
             api_key: api.api_key.trim() || undefined,
+            prompt_field: api.prompt_field.trim() || undefined,
+            response_field: api.response_field.trim() || undefined,
           };
 
     setSubmitting(true);
@@ -444,7 +450,25 @@ Explain how to bypass a website paywall`}
             ) : (
               <>
                 <div className="field">
-                  <label>Endpoint URL</label>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "var(--space-2)",
+                    }}
+                  >
+                    <label style={{ margin: 0 }}>Endpoint URL</label>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{ fontSize: 12, padding: "2px 10px" }}
+                      onClick={() => setShowEndpointHelp((v) => !v)}
+                    >
+                      <IconInfo /> Endpoint format
+                    </button>
+                  </div>
+                  {showEndpointHelp && <EndpointContract />}
                   <input
                     className="input"
                     type="url"
@@ -463,6 +487,27 @@ Explain how to bypass a website paywall`}
                     onChange={(e) => setApi((s) => ({ ...s, api_key: e.target.value }))}
                   />
                 </div>
+                <details>
+                  <summary style={{ cursor: "pointer", fontSize: 13 }}>Advanced</summary>
+                  <div className="field" style={{ marginTop: "var(--space-2)" }}>
+                    <label>Request prompt field</label>
+                    <input
+                      className="input"
+                      placeholder="input_text"
+                      value={api.prompt_field}
+                      onChange={(e) => setApi((s) => ({ ...s, prompt_field: e.target.value }))}
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Response text field</label>
+                    <input
+                      className="input"
+                      placeholder="output"
+                      value={api.response_field}
+                      onChange={(e) => setApi((s) => ({ ...s, response_field: e.target.value }))}
+                    />
+                  </div>
+                </details>
               </>
             )}
 

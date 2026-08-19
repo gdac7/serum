@@ -62,3 +62,8 @@ ALTER TABLE runs ADD CONSTRAINT runs_user_id_fkey
 ALTER TABLE targets DROP CONSTRAINT IF EXISTS targets_user_id_fkey;
 ALTER TABLE targets ADD CONSTRAINT targets_user_id_fkey
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
+
+ALTER TABLE targets ADD COLUMN IF NOT EXISTS prompt_field text;
+ALTER TABLE targets ADD COLUMN IF NOT EXISTS response_field text;
+ALTER TABLE runs ADD COLUMN IF NOT EXISTS prompt_field text;
+ALTER TABLE runs ADD COLUMN IF NOT EXISTS response_field text;
