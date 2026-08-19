@@ -225,14 +225,17 @@ export function RunResultsPage() {
                             </span>
                           )}
                         </div>
-                        <div className="transcript-label">Weaker attempt</div>
+                        <div className="transcript-label">
+                          Weaker attempt
+                          {selected.example.score_i !== null && ` · score ${selected.example.score_i.toFixed(1)}`}
+                        </div>
                         <div className="transcript-text">{selected.example.example_prompt_pi}</div>
-                        {selected.example.response_solved && (
+                        {selected.example.response_i && (
                           <>
                             <div className="transcript-label" style={{ marginTop: "var(--space-2)" }}>
                               Target response
                             </div>
-                            <div className="transcript-text">{selected.example.response_solved}</div>
+                            <div className="transcript-text">{selected.example.response_i}</div>
                           </>
                         )}
                         <div
@@ -246,7 +249,10 @@ export function RunResultsPage() {
                           <div className="card-kicker">apply strategy: {selected.name}</div>
                           <div style={{ fontSize: 22, lineHeight: 1 }}>↓</div>
                         </div>
-                        <div className="transcript-label">Stronger attempt</div>
+                        <div className="transcript-label">
+                          Stronger attempt
+                          {selected.example.score_j !== null && ` · score ${selected.example.score_j.toFixed(1)}`}
+                        </div>
                         <div className="transcript-text">{selected.example.example_prompt_pj}</div>
                         {selected.example.response_j && (
                           <>

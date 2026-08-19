@@ -23,14 +23,17 @@ function StrategyCard({ s }: { s: StrategyProgress }) {
         </>
       )}
 
-      <div className="transcript-label">Weaker attempt</div>
+      <div className="transcript-label">
+        Weaker attempt
+        {s.score_i !== null && ` · score ${s.score_i.toFixed(1)}`}
+      </div>
       <div className="transcript-text">{s.example_prompt_pi}</div>
-      {s.response_solved && (
+      {s.response_i && (
         <>
           <div className="transcript-label" style={{ marginTop: "var(--space-2)" }}>
             Target response
           </div>
-          <div className="transcript-text">{s.response_solved}</div>
+          <div className="transcript-text">{s.response_i}</div>
         </>
       )}
 
@@ -40,7 +43,10 @@ function StrategyCard({ s }: { s: StrategyProgress }) {
         <div style={{ fontSize: 22, lineHeight: 1 }}>↓</div>
       </div>
 
-      <div className="transcript-label">Stronger attempt</div>
+      <div className="transcript-label">
+        Stronger attempt
+        {s.score_j !== null && ` · score ${s.score_j.toFixed(1)}`}
+      </div>
       <div className="transcript-text">{s.example_prompt_pj}</div>
       {s.response_j && (
         <>

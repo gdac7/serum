@@ -89,8 +89,10 @@ export interface StrategyProgress {
   improvement: number | null;
   example_prompt_pi: string;
   example_prompt_pj: string;
-  response_solved: string;
+  response_i: string;
   response_j: string;
+  score_i: number | null;
+  score_j: number | null;
 }
 
 export interface RunProgress {
