@@ -1,0 +1,114 @@
+name: serum
+
+services:
+  rt-pg:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${RT_PG_PASSWORD:?set RT_PG_PASSWORD in .env}
+    volumes:
+      - rt-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  gw-pg:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gateway
+      POSTGRES_PASSWORD: ${GW_PG_PASSWORD:?set GW_PG_PASSWORD in .env}
+      POSTGRES_DB: gateway
+    volumes:
+      - gw-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gateway -d gateway"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redteam:
+    build: ./redteam-service
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:${RT_PG_PASSWORD}@rt-pg:5432/postgres
+      HF_TOKEN: ${HF_TOKEN:-}
+    volumes:
+      - weights:/weights
+    shm_size: "16gb"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    depends_on:
+      rt-pg:
+        condition: service_healthy
+
+  gateway:
+    build: ./red-team-webapp/gateway
+    restart: unless-stopped
+    environment: &gateway-env
+      NODE_ENV: production
+      PORT: "3000"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      PYTHON_SERVICE_URL: http://redteam:8080
+      REDIS_URL: redis://redis:6379
+      GATEWAY_DATABASE_URL: postgresql://gateway:${GW_PG_PASSWORD}@gw-pg:5432/gateway
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      JWT_EXPIRES_SECONDS: ${JWT_EXPIRES_SECONDS:-3600}
+      SECRETS_ENC_KEY: ${SECRETS_ENC_KEY:?set SECRETS_ENC_KEY in .env}
+      BRIDGE_SECRET: ${BRIDGE_SECRET:?set BRIDGE_SECRET in .env}
+      # A public gateway must never accept private/loopback target endpoints —
+      # the guard is what stops a target config becoming an SSRF vector. Targets
+      # on a user's own machine go through the connector instead.
+      ALLOW_PRIVATE_ENDPOINTS: "false"
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?set PUBLIC_BASE_URL in .env}
+      # Feeds the service's target_key: changing it makes every connector target
+      # look new and start an empty strategy library. Keep it this service name.
+      INTERNAL_BASE_URL: http://gateway:3000
+    depends_on:
+      gw-pg:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: ./red-team-webapp/gateway
+    command: npm run worker
+    restart: unless-stopped
+    environment: *gateway-env
+    depends_on:
+      gw-pg:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Dials out to Cloudflare; no inbound port is opened on the host. Which
+  # hostname maps to gateway:3000 is configured in the Zero Trust dashboard.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?set TUNNEL_TOKEN in .env}
+    depends_on:
+      - gateway
+
+volumes:
+  rt-pgdata:
+  gw-pgdata:
+  weights:
