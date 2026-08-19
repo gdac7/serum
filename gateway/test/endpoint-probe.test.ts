@@ -1,12 +1,20 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+
+// The probe calls undici's fetch, not the global one, so that is what is stubbed.
+const fetchMock = vi.hoisted(() => vi.fn());
+vi.mock("undici", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  fetch: fetchMock,
+}));
+
 import { probeEndpoint } from "../src/infra/endpoint-probe";
 
 const URL_OK = "https://api.example.com/generate";
 
 function stubFetch(impl: (url: string, init: RequestInit) => Promise<Response> | never) {
-  const spy = vi.fn(impl as never);
-  vi.stubGlobal("fetch", spy);
-  return spy;
+  fetchMock.mockReset();
+  fetchMock.mockImplementation(impl as never);
+  return fetchMock;
 }
 
 function jsonResponse(body: unknown, status = 200, statusText = "OK") {
@@ -25,7 +33,7 @@ function networkError(code: string) {
   return err;
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => fetchMock.mockReset());
 
 describe("probeEndpoint", () => {
   it("rejects a private host without opening a connection", async () => {

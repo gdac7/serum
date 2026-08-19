@@ -1,6 +1,9 @@
 // Sends one request in the target endpoint contract (POST {prompt_field} ->
 // {response_field}) and classifies the failure into something actionable.
 
+// undici's fetch, not the global one: only its own dispatcher is accepted,
+// and the dispatcher is what carries the TLS setting below.
+import { Agent, fetch } from "undici";
 import { env } from "../config/env";
 import { isPrivateHost } from "./host";
 
@@ -10,6 +13,11 @@ const DEFAULT_RESPONSE_FIELD = "output";
 // Must match RESPONSE_FALLBACK_FIELDS in the service's remote_model.py: a body
 // the probe rejects here would otherwise be accepted mid-run, and vice versa.
 const RESPONSE_FALLBACK_FIELDS = ["output", "generated_text", "response", "text"];
+
+// Mirrors RemoteModelAPI's verify_tls rule: private hosts are dev and on-prem
+// endpoints, commonly self-signed. Rejecting a certificate the service itself
+// accepts would block registration for a target that runs fine.
+const insecureAgent = new Agent({ connect: { rejectUnauthorized: false } });
 
 // A generation gets 300s; this runs while someone waits on a form.
 const PROBE_TIMEOUT_MS = 10_000;
@@ -121,7 +129,7 @@ export async function probeEndpoint(url: string, opts: ProbeOptions = {}): Promi
     };
   }
 
-  let response: Response;
+  let response: Awaited<ReturnType<typeof fetch>>;
   try {
     response = await fetch(url, {
       method: "POST",
@@ -131,6 +139,7 @@ export async function probeEndpoint(url: string, opts: ProbeOptions = {}): Promi
       },
       body: JSON.stringify({ [promptField]: PROBE_PROMPT }),
       signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+      ...(isPrivateHost(hostname) ? { dispatcher: insecureAgent } : {}),
     });
   } catch (err) {
     return { ok: false, ...classify(err, hostname) };
