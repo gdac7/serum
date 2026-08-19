@@ -135,6 +135,18 @@ export interface RunPromptsResponse {
   prompts: Record<string, TrainingPrompt[]>;
 }
 
+// One malicious request that has finished all its attack iterations.
+export interface RequestScore {
+  phase: string;
+  request_index: number;
+  total_requests: number;
+  malicious_request: string;
+  attempts: number;
+  average_score: number | null;
+  best_score: number | null;
+  completed_at: string;
+}
+
 export interface RunProgressResponse {
   run_id: string;
   status: RedTeamRunStatus;
@@ -142,6 +154,7 @@ export interface RunProgressResponse {
   loaded_from_library: number | null;
   discovered_this_run: number | null;
   persist_errors: string[];
+  request_scores: RequestScore[];
   strategies: Record<string, unknown>[];
 }
 

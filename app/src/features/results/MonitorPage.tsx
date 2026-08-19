@@ -4,7 +4,8 @@ import { useAuth } from "../../shared/auth/AuthContext";
 import { runsApi, subscribeRunEvents } from "../../shared/api/runs";
 import { ApiError } from "../../shared/api/client";
 import { StatusTag } from "../../shared/components/StatusTag";
-import type { RunProgress, RunSummary } from "../../shared/types/run";
+import type { RequestScore, RunProgress, RunSummary } from "../../shared/types/run";
+import { RequestScoresTable } from "./RequestScoresTable";
 
 const POLL_MS = 4000;
 
@@ -17,10 +18,17 @@ function formatElapsed(ms: number): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
 
-function averageScore(progress: RunProgress | null): number | null {
-  if (!progress || progress.strategies.length === 0) return null;
-  const sum = progress.strategies.reduce((acc, s) => acc + s.average_score, 0);
-  return sum / progress.strategies.length;
+// Attempt-weighted mean over the requests finished so far — the same quantity
+// the phase summary reports at the end, just computed from a partial run.
+function averageScore(entries: RequestScore[]): number | null {
+  let attempts = 0;
+  let sum = 0;
+  for (const e of entries) {
+    if (e.average_score === null) continue;
+    attempts += e.attempts;
+    sum += e.average_score * e.attempts;
+  }
+  return attempts > 0 ? sum / attempts : null;
 }
 
 export function MonitorPage() {
@@ -72,6 +80,11 @@ export function MonitorPage() {
     poll();
     const interval = setInterval(poll, POLL_MS);
     const unsubscribe = subscribeRunEvents(token, id, (frame) => {
+      // A request finishing is worth showing before the next poll comes round.
+      if (frame.type === "request_completed") {
+        poll();
+        return;
+      }
       const coarse = (frame.coarse as string | undefined) ?? (frame.type as string);
       if (coarse === "completed" || coarse === "failed") {
         refreshRun();
@@ -87,7 +100,8 @@ export function MonitorPage() {
   }, [token, id, navigate]);
 
   const discovered = progress?.discovered_this_run ?? progress?.total ?? 0;
-  const avg = averageScore(progress);
+  const requestScores = progress?.request_scores ?? [];
+  const avg = averageScore(requestScores);
   const startedAt = run?.started_at ? new Date(run.started_at).getTime() : null;
 
   return (
@@ -132,6 +146,13 @@ export function MonitorPage() {
               <div className="metric-label">Average score</div>
             </div>
           </div>
+        )}
+
+        {run && (run.status === "running" || run.status === "queued") && (
+          <>
+            <h2 style={{ marginTop: "var(--space-8)" }}>Score per malicious request</h2>
+            <RequestScoresTable entries={requestScores} />
+          </>
         )}
       </div>
     </main>

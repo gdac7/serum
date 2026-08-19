@@ -10,6 +10,7 @@ import type {
   RunSummary,
   StrategyProgress,
 } from "../../shared/types/run";
+import { RequestScoresTable } from "./RequestScoresTable";
 
 const PHASE_ORDER = ["warmup", "lifelong", "evaluate"];
 const PHASE_LABEL: Record<string, string> = {
@@ -173,10 +174,13 @@ export function RunResultsPage() {
                 </table>
               )}
 
+              <h3 style={{ marginTop: "var(--space-6)" }}>Score per malicious request</h3>
+              <RequestScoresTable entries={progress?.request_scores ?? []} />
+
               <button
                 type="button"
                 className="btn btn-secondary"
-                style={{ marginTop: "var(--space-3)" }}
+                style={{ marginTop: "var(--space-5)" }}
                 onClick={() => navigate(`/results/${id}/transcript`)}
               >
                 Show attack prompts and target responses

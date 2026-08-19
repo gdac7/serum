@@ -1,5 +1,5 @@
 import { createRedisConnection } from "./redis";
-import type { RedTeamRunStatus } from "./redteam.client";
+import type { RedTeamRunStatus, RequestScore } from "./redteam.client";
 
 export type RunEvent =
   | { type: "snapshot"; status: string; error: string | null }
@@ -10,6 +10,7 @@ export type RunEvent =
       loaded_from_library: number | null;
       discovered_this_run: number | null;
     }
+  | { type: "request_completed"; entries: RequestScore[] }
   | { type: "completed" }
   | { type: "failed"; error: string };
 
