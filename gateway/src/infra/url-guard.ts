@@ -1,6 +1,8 @@
 // SSRF guard: the Python service fetches endpoint_url server-side, so block
 // non-https and loopback/private/link-local hosts before a run is accepted.
 
+import { env } from "../config/env";
+
 const PRIVATE_V4 =
   /^(127\.|10\.|192\.168\.|169\.254\.|0\.|172\.(1[6-9]|2\d|3[01])\.)/;
 
@@ -23,4 +25,15 @@ export function isPublicHttpsUrl(value: string): boolean {
   }
   if (url.protocol !== "https:") return false;
   return !isPrivateHost(url.hostname);
+}
+
+/** Same guard, relaxed to http and private hosts when ALLOW_PRIVATE_ENDPOINTS is set. */
+export function isAllowedEndpointUrl(value: string): boolean {
+  if (!env.ALLOW_PRIVATE_ENDPOINTS) return isPublicHttpsUrl(value);
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
 }

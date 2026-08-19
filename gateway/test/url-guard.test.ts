@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isPublicHttpsUrl } from "../src/infra/url-guard";
+import { isAllowedEndpointUrl, isPublicHttpsUrl } from "../src/infra/url-guard";
 
 describe("isPublicHttpsUrl", () => {
   it("accepts a public https url", () => {
@@ -26,5 +26,13 @@ describe("isPublicHttpsUrl", () => {
 
   it("rejects a malformed url", () => {
     expect(isPublicHttpsUrl("not a url")).toBe(false);
+  });
+});
+
+// ALLOW_PRIVATE_ENDPOINTS is unset in the test env, so the guard stays strict.
+describe("isAllowedEndpointUrl", () => {
+  it("defaults to the public-https guard", () => {
+    expect(isAllowedEndpointUrl("https://api.example.com/generate")).toBe(true);
+    expect(isAllowedEndpointUrl("https://localhost:7000/gentext/")).toBe(false);
   });
 });

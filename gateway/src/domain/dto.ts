@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isPublicHttpsUrl } from "../infra/url-guard";
+import { isAllowedEndpointUrl } from "../infra/url-guard";
 
 export const credentialsSchema = z.object({
   email: z.string().email(),
@@ -10,29 +10,24 @@ export type Credentials = z.infer<typeof credentialsSchema>;
 
 // Shared by createRunSchema and registerTargetSchema: both carry the same
 // target-config shape, and kind:"api" needs the same fields validated either way.
+// api_key is optional: an endpoint may well be unauthenticated in development.
 function refineApiTarget(
   val: { kind: string; endpoint_url?: string; api_key?: string },
   ctx: z.RefinementCtx,
 ) {
   if (val.kind !== "api") return;
-  if (!val.api_key) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["api_key"],
-      message: "api_key is required for kind:api",
-    });
-  }
   if (!val.endpoint_url) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["endpoint_url"],
       message: "endpoint_url is required for kind:api",
     });
-  } else if (!isPublicHttpsUrl(val.endpoint_url)) {
+  } else if (!isAllowedEndpointUrl(val.endpoint_url)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["endpoint_url"],
-      message: "endpoint_url must be https and not a private/internal host",
+      message:
+        "endpoint_url must be https and not a private/internal host (set ALLOW_PRIVATE_ENDPOINTS=true to allow local endpoints in development)",
     });
   }
 }

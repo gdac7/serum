@@ -38,13 +38,13 @@ describe("createRunSchema", () => {
     expect(res.success).toBe(false);
   });
 
-  it("rejects api run missing api_key", () => {
+  it("accepts an api run with no api_key — the endpoint may be unauthenticated", () => {
     const res = createRunSchema.safeParse({
       ...base,
       kind: "api",
       endpoint_url: "https://api.example.com/generate",
     });
-    expect(res.success).toBe(false);
+    expect(res.success).toBe(true);
   });
 
   it("rejects a private/internal endpoint host", () => {

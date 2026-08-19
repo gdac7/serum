@@ -16,6 +16,13 @@ const schema = z.object({
   SECRETS_ENC_KEY: z
     .string()
     .regex(/^[0-9a-fA-F]{64}$/, "SECRETS_ENC_KEY must be 64 hex chars (32 bytes)"),
+  // Opens the endpoint allow-list to http and loopback/private hosts, for
+  // targets served from the developer's own machine. Never set in production:
+  // the guard is what stops a target config from becoming an SSRF vector.
+  ALLOW_PRIVATE_ENDPOINTS: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
 });
 
 const parsed = schema.safeParse(process.env);

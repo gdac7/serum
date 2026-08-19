@@ -26,15 +26,10 @@ export function RegisterTargetDialog({
       setError("Model name is required.");
       return;
     }
-    if (kind === "api") {
-      if (!endpointUrl.trim() || !endpointUrl.startsWith("https://")) {
-        setError("Endpoint URL must be https.");
-        return;
-      }
-      if (!apiKey.trim()) {
-        setError("API key is required.");
-        return;
-      }
+    // Whether a private/http host is allowed is the gateway's call, not ours.
+    if (kind === "api" && !/^https?:\/\//.test(endpointUrl.trim())) {
+      setError("Endpoint URL must start with http:// or https://.");
+      return;
     }
     if (!token) return;
 
@@ -48,7 +43,7 @@ export function RegisterTargetDialog({
               kind: "api",
               model_name: modelName.trim(),
               endpoint_url: endpointUrl.trim(),
-              api_key: apiKey.trim(),
+              api_key: apiKey.trim() || undefined,
             },
       );
       onRegistered(res.target_id);
@@ -123,11 +118,11 @@ export function RegisterTargetDialog({
                 />
               </div>
               <div className="field">
-                <label>API key</label>
+                <label>API key (optional)</label>
                 <input
                   className="input"
                   type="password"
-                  placeholder="bearer token for your endpoint"
+                  placeholder="bearer token, if your endpoint needs one"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                 />
