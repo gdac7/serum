@@ -179,7 +179,13 @@ export function RunResultsPage() {
               </h2>
               <RequestScoresTable entries={progress?.request_scores ?? []} />
 
-              <div style={{ textAlign: "left", marginTop: "var(--space-5)", paddingBottom: "var(--space-4)" }}>
+              <div
+                style={{
+                  textAlign: "left",
+                  paddingTop: "var(--space-6)",
+                  paddingBottom: "var(--space-4)",
+                }}
+              >
                 <button
                   type="button"
                   className="btn btn-secondary"
