@@ -174,7 +174,9 @@ export function RunResultsPage() {
                 </table>
               )}
 
-              <h3 style={{ marginTop: "var(--space-6)" }}>Score per malicious request</h3>
+              <h2 style={{ textAlign: "center", marginTop: "var(--space-6)" }}>
+                Score per malicious request
+              </h2>
               <RequestScoresTable entries={progress?.request_scores ?? []} />
 
               <button
