@@ -58,6 +58,24 @@ function downloadPrompts(fileStem: string, rows: TranscriptRow[]): void {
   URL.revokeObjectURL(url);
 }
 
+const PAGE_SIZE = 6;
+
+/** First, last and the pages around the current one; null marks a skipped span.
+ *  A run can produce hundreds of attempts, so every page can't get a button. */
+function pageWindow(current: number, pageCount: number): (number | null)[] {
+  const wanted = new Set<number>([0, pageCount - 1]);
+  for (let p = current - 1; p <= current + 1; p++) {
+    if (p >= 0 && p < pageCount) wanted.add(p);
+  }
+  const sorted = [...wanted].sort((a, b) => a - b);
+  const out: (number | null)[] = [];
+  sorted.forEach((p, i) => {
+    if (i > 0 && p - sorted[i - 1] > 1) out.push(null);
+    out.push(p);
+  });
+  return out;
+}
+
 export function RunTranscriptPage() {
   const { id = "" } = useParams();
   const { token } = useAuth();
@@ -67,6 +85,7 @@ export function RunTranscriptPage() {
   const [error, setError] = useState<string | null>(null);
   const [promptsError, setPromptsError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
     if (!token) return;
@@ -103,9 +122,13 @@ export function RunTranscriptPage() {
   const rows = useMemo(() => collectRows(prompts, results), [prompts, results]);
   const fileStem = (run?.model_name ?? "run").replace(/[^a-z0-9._-]+/gi, "_");
 
+  const pageCount = Math.ceil(rows.length / PAGE_SIZE);
+  const current = Math.min(page, Math.max(0, pageCount - 1));
+  const visible = rows.slice(current * PAGE_SIZE, current * PAGE_SIZE + PAGE_SIZE);
+
   return (
     <main style={{ flex: 1, overflowY: "auto" }}>
-      <div style={{ maxWidth: 820, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
+      <div style={{ maxWidth: 1120, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
         <Link to={`/results/${id}`} className="text-muted">
           ← Back to results
         </Link>
@@ -144,20 +167,75 @@ export function RunTranscriptPage() {
           </p>
         )}
 
-        {rows.map((row, i) => (
-          <div key={i} className="transcript-item">
-            <div className="card-kicker" style={{ marginBottom: "var(--space-2)" }}>
-              {PHASE_LABEL[row.phase] ?? row.phase} · {row.malicious_request}
-              {row.score !== null ? ` — score ${row.score.toFixed(2)}` : ""}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+            gap: "var(--space-4)",
+            alignItems: "start",
+          }}
+        >
+          {visible.map((row, i) => (
+            <div key={current * PAGE_SIZE + i} className="transcript-item strategy-box">
+              <div className="card-kicker" style={{ marginBottom: "var(--space-2)" }}>
+                {PHASE_LABEL[row.phase] ?? row.phase} · {row.malicious_request}
+                {row.score !== null ? ` — score ${row.score.toFixed(2)}` : ""}
+              </div>
+              <div className="transcript-label">Attack prompt</div>
+              <div className="transcript-text">{row.attack_prompt}</div>
+              <div className="transcript-label" style={{ marginTop: "var(--space-2)" }}>
+                Target response
+              </div>
+              <div className="transcript-text">{row.target_response}</div>
             </div>
-            <div className="transcript-label">Attack prompt</div>
-            <div className="transcript-text">{row.attack_prompt}</div>
-            <div className="transcript-label" style={{ marginTop: "var(--space-2)" }}>
-              Target response
-            </div>
-            <div className="transcript-text">{row.target_response}</div>
+          ))}
+        </div>
+
+        {pageCount > 1 && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "var(--space-2)",
+              marginTop: "var(--space-5)",
+              flexWrap: "wrap",
+            }}
+          >
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={current === 0}
+              onClick={() => setPage(current - 1)}
+            >
+              ←
+            </button>
+            {pageWindow(current, pageCount).map((p, i) =>
+              p === null ? (
+                <span key={`gap-${i}`} className="text-muted">
+                  …
+                </span>
+              ) : (
+                <button
+                  key={p}
+                  type="button"
+                  className={`btn ${p === current ? "btn-primary" : "btn-secondary"}`}
+                  onClick={() => setPage(p)}
+                >
+                  {p + 1}
+                </button>
+              ),
+            )}
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={current >= pageCount - 1}
+              onClick={() => setPage(current + 1)}
+            >
+              →
+            </button>
           </div>
-        ))}
+        )}
       </div>
     </main>
   );
