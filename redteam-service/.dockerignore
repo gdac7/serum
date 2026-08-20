@@ -1,0 +1,11 @@
+.git/
+__pycache__/
+**/__pycache__/
+*.pyc
+venv/
+*venv*/
+.ipynb_checkpoints/
+*.ipynb
+bert-scorer/
+notes.txt
+tracking.txt
