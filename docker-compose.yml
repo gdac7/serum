@@ -61,6 +61,10 @@ services:
   gateway:
     build: ./red-team-webapp/gateway
     restart: unless-stopped
+    # Loopback only: ngrok runs on the host, not on this network, so it needs a
+    # published port -- but the tunnel stays the sole public path in.
+    ports:
+      - "127.0.0.1:3000:3000"
     environment: &gateway-env
       NODE_ENV: production
       PORT: "3000"
