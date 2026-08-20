@@ -24,6 +24,13 @@ async function main() {
     );
   });
 
+  // Same reason as the redis client: an unhandled "error" event would take the
+  // whole worker down, and under a supervisor that survives it the queue would
+  // silently stop being consumed.
+  worker.on("error", (err) => {
+    logger.error({ err }, "run worker error");
+  });
+
   worker.on("failed", async (job, err) => {
     if (!job) return;
     logger.error(
@@ -32,7 +39,9 @@ async function main() {
     );
     const exhausted = job.attemptsMade >= (job.opts.attempts ?? 1);
     if (exhausted) {
-      await runRepository.setError(job.data.nodeRunId, err.message);
+      await runRepository
+        .setError(job.data.nodeRunId, err.message)
+        .catch((dbErr) => logger.error({ dbErr }, "could not persist run failure"));
     }
   });
 
