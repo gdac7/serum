@@ -88,7 +88,9 @@ services:
 
   worker:
     build: ./red-team-webapp/gateway
-    command: npm run worker
+    # Not `npm run worker`: that is `tsx watch`, whose supervisor outlives a
+    # crashed child, so the container stays Up with nothing consuming the queue.
+    command: npm run worker:start
     restart: unless-stopped
     environment: *gateway-env
     depends_on:
