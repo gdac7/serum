@@ -71,7 +71,11 @@ export const targetService = {
     // Verified from the service, which is the only host whose answer counts:
     // it and the gateway resolve names differently, and for a container-hosted
     // endpoint an address that works here may not work there, or the reverse.
-    if (row.kind !== "local") {
+    // A connector target is excluded: it only becomes reachable once its token
+    // is issued and the connector starts, both of which happen after this
+    // returns, so probing here would delete every connector target ever made.
+    // `test()` is where a connector's reachability is checked instead.
+    if (row.kind === "api") {
       const reachable = await probeFromService(userId, target.target_id);
       if (!reachable.ok) {
         await targetRepository.delete(row.id, userId);
