@@ -345,7 +345,9 @@ def _stream_target_reply(target: Dict[str, Any], request: ChatRequest) -> Iterat
         if is_local:
             lock_acquired = gpu_lock.acquire(blocking=False)
             if not lock_acquired:
-                yield _sse({"type": "error", "error": "target is busy with a run; retry shortly"})
+                # Not necessarily *this* target's run: attacker, scorer and
+                # summarizer are local, so any run saturates the one GPU.
+                yield _sse({"type": "error", "error": "the GPU is busy with a run; local models are unavailable until it finishes"})
                 return
             deltas = model.stream_generate(
                 request.message, request.system_prompt,

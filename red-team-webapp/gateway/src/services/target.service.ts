@@ -9,8 +9,10 @@ import { probeFromService } from "./service-probe";
 import { connectorTargetConfig } from "../domain/target-config";
 import type { ProbeTargetInput, RegisterTargetInput } from "../domain/dto";
 
-// in_use marks a target whose model is running a test right now: the run holds
-// the GPU, so chat is unavailable until it finishes.
+// in_use marks a target that cannot be chatted right now. For a local target
+// that means any run at all, not just one against it: attacker, scorer and
+// summarizer are local, so every run holds the single GPU. Remote targets are
+// reached over HTTP and stay available throughout.
 function shapeTarget(t: TargetRow, inUse = false) {
   return {
     target_id: t.id,
@@ -44,6 +46,11 @@ function configFromRow(t: TargetRow): TargetConfig {
         response_field: t.response_field ?? undefined,
       }
     : { kind: "local", model_name: t.model_name, load_4_bits: t.load_4_bits };
+}
+
+export function isBusy(t: TargetRow, activeTargetIds: Set<string>, gpuBusy: boolean): boolean {
+  if (t.kind === "local") return gpuBusy;
+  return t.python_target_id != null && activeTargetIds.has(t.python_target_id);
 }
 
 export const targetService = {
@@ -89,7 +96,8 @@ export const targetService = {
   async list(userId: string) {
     const rows = await targetRepository.listByUser(userId);
     const active = new Set(await runRepository.activeTargetIds(userId));
-    return rows.map((t) => shapeTarget(t, t.python_target_id != null && active.has(t.python_target_id)));
+    const gpuBusy = await runRepository.hasActiveRun(userId);
+    return rows.map((t) => shapeTarget(t, isBusy(t, active, gpuBusy)));
   },
 
   // Re-checks Python health and syncs the local row — status may have moved
@@ -103,10 +111,11 @@ export const targetService = {
     if (health.status !== row.status || (health.error ?? null) !== row.error) {
       await targetRepository.setStatus(row.id, health.status, health.error ?? null);
     }
-    const active = await runRepository.activeTargetIds(userId);
+    const active = new Set(await runRepository.activeTargetIds(userId));
+    const gpuBusy = await runRepository.hasActiveRun(userId);
     return shapeTarget(
       { ...row, status: health.status, error: health.error ?? null },
-      active.includes(row.python_target_id),
+      isBusy(row, active, gpuBusy),
     );
   },
 
