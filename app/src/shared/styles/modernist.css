@@ -235,10 +235,15 @@ textarea.input { min-height: 90px; resize: vertical; }
   width: min(440px, 100%); display: flex; flex-direction: column; gap: var(--space-3);
   padding: var(--space-4); border-radius: var(--radius-lg);
   background: var(--color-surface); box-shadow: var(--shadow-lg);
+  /* The backdrop centres this, so without a cap a tall dialog overflows the
+     viewport with its top edge unreachable. */
+  max-height: 100%;
 }
 .dialog-title {
   font-family: var(--font-heading); font-weight: var(--font-heading-weight);
   font-size: 20px;
 }
-.dialog-body { font-size: 14px; opacity: 0.85; }
+/* min-height lets this flex item shrink below its content so it, rather than
+   the dialog, is what scrolls -- keeping the title and actions in view. */
+.dialog-body { font-size: 14px; opacity: 0.85; overflow-y: auto; min-height: 0; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
