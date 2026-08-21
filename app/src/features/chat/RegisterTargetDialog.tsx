@@ -174,7 +174,7 @@ export function RegisterTargetDialog({
                   }}
                 >
                   <label style={{ margin: 0 }}>
-                    {kind === "connector" ? "Model URL on your machine" : "Endpoint URL"}
+                    {kind === "connector" ? "Model URL the connector can reach" : "Endpoint URL"}
                   </label>
                   <button
                     type="button"

@@ -69,8 +69,9 @@ export function ConnectorSetup({ targetId, onDone }: { targetId: string; onDone:
       <div className="dialog-title">Connect your model</div>
       <div className="dialog-body" style={{ display: "grid", gap: "var(--space-3)" }}>
         <p style={{ margin: 0, fontSize: 13 }}>
-          Download <code>redteam-connect.py</code> and run it on the machine where your model
-          runs. It only makes outgoing requests, so no firewall change or open port is needed.
+          Download <code>redteam-connect.py</code> and run it on any machine that can reach your
+          model — its own server, or anything else on the same network. It only makes outgoing
+          requests, so no firewall change or open port is needed.
         </p>
 
         {error && <div className="form-error">{error}</div>}
@@ -84,7 +85,8 @@ export function ConnectorSetup({ targetId, onDone }: { targetId: string; onDone:
             </button>
             <p className="form-hint">
               The token appears only here. If you lose it, open this dialog again to issue a new
-              one.
+              one. It has to keep running for the whole test — on a server, start it under
+              <code> nohup</code> or systemd rather than a bare shell.
             </p>
           </div>
         )}
