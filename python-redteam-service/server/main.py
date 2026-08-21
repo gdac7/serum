@@ -268,7 +268,14 @@ def _build_target(target_id: str) -> None:
 
 def load_target(target_id: str):
     try:
-        _build_target(target_id)
+        if targets[target_id]["config"].get("kind") == "local":
+            # Loading local weights competes for the same GPU used by runs and
+            # chats. Queue behind them instead of allocating concurrently and
+            # risking an out-of-memory failure or disturbing the active model.
+            with gpu_lock:
+                _build_target(target_id)
+        else:
+            _build_target(target_id)
     except Exception:
         pass
 

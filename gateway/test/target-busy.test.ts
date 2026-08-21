@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { isBusy } from "../src/services/target.service";
+import { targetBusyReason } from "../src/services/target.service";
 
 const LOCAL = { kind: "local", python_target_id: "py-local" } as never;
 const API = { kind: "api", python_target_id: "py-api" } as never;
@@ -9,20 +9,21 @@ describe("target availability during a run", () => {
   // The bug: chat refused a local target while a run against a *remote* one was
   // going, because attacker/scorer/summarizer are local and hold the one GPU.
   // The UI said it was free, then the service refused it.
-  it("marks a local target busy during a run against another target", () => {
-    expect(isBusy(LOCAL, new Set(["py-api"]), true)).toBe(true);
+  it("reports GPU contention for a local target during another target's run", () => {
+    expect(targetBusyReason(LOCAL, new Set(["py-api"]), true)).toBe("gpu_busy");
   });
 
   it("leaves a remote target free during a run against a different target", () => {
-    expect(isBusy(API, new Set(["py-other"]), true)).toBe(false);
+    expect(targetBusyReason(API, new Set(["py-other"]), true)).toBeNull();
   });
 
-  it("marks a remote target busy during its own run", () => {
-    expect(isBusy(API, new Set(["py-api"]), true)).toBe(true);
+  it("reports the target's own active run", () => {
+    expect(targetBusyReason(API, new Set(["py-api"]), true)).toBe("active_run");
+    expect(targetBusyReason(LOCAL, new Set(["py-local"]), true)).toBe("active_run");
   });
 
   it("frees everything when no run is active", () => {
-    expect(isBusy(LOCAL, new Set(), false)).toBe(false);
-    expect(isBusy(API, new Set(), false)).toBe(false);
+    expect(targetBusyReason(LOCAL, new Set(), false)).toBeNull();
+    expect(targetBusyReason(API, new Set(), false)).toBeNull();
   });
 });
