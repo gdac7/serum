@@ -4,6 +4,8 @@ services:
   rt-pg:
     image: pgvector/pgvector:pg17
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:5434:5432"
     environment:
       POSTGRES_PASSWORD: ${RT_PG_PASSWORD:?set RT_PG_PASSWORD in .env}
     volumes:
@@ -17,6 +19,8 @@ services:
   gw-pg:
     image: postgres:17
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:5433:5432"
     environment:
       POSTGRES_USER: gateway
       POSTGRES_PASSWORD: ${GW_PG_PASSWORD:?set GW_PG_PASSWORD in .env}
