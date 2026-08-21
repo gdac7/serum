@@ -39,7 +39,7 @@ services:
       retries: 10
 
   redteam:
-    build: ./redteam-service
+    build: ./python-redteam-service
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://postgres:${RT_PG_PASSWORD}@rt-pg:5432/postgres
@@ -62,7 +62,7 @@ services:
     # Context is the repo, not gateway/: the gateway serves the connector script
     # to users, so connector/ has to be inside the build context.
     build: &gateway-build
-      context: ./red-team-webapp
+      context: .
       dockerfile: gateway/Dockerfile
     restart: unless-stopped
     # Loopback only: ngrok runs on the host, not on this network, so it needs a
