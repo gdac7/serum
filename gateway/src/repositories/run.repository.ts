@@ -100,6 +100,19 @@ export const runRepository = {
     return rows.map((r) => r.target_id);
   },
 
+  // Any run at all, whatever it targets: the attacker, scorer and summarizer
+  // models are local, so a run against a remote endpoint still holds the GPU
+  // and locks out every local target.
+  async hasActiveRun(userId: string): Promise<boolean> {
+    const { rows } = await pool.query<{ n: string }>(
+      `SELECT 1 AS n FROM runs
+       WHERE user_id = $1 AND status NOT IN ('completed', 'failed')
+       LIMIT 1`,
+      [userId],
+    );
+    return rows.length > 0;
+  },
+
   async findByIdForUser(id: string, userId: string): Promise<RunRow | null> {
     const { rows } = await pool.query<RunRow>(
       "SELECT * FROM runs WHERE id = $1 AND user_id = $2",
