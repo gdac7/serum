@@ -78,7 +78,10 @@ export function MonitorPage() {
 
     refreshRun();
     poll();
-    const interval = setInterval(poll, POLL_MS);
+    const interval = setInterval(() => {
+      refreshRun();
+      poll();
+    }, POLL_MS);
     const unsubscribe = subscribeRunEvents(token, id, (frame) => {
       // A request finishing is worth showing before the next poll comes round.
       if (frame.type === "request_completed") {
@@ -117,6 +120,7 @@ export function MonitorPage() {
         </p>
 
         {error && <div className="form-error">{error}</div>}
+        {run?.status === "failed" && run.error && <div className="form-error">{run.error}</div>}
 
         {run && run.status !== "running" && run.status !== "queued" && !error && (
           <p className="empty-state">

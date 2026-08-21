@@ -21,6 +21,7 @@ export function ResultsPage() {
   const [runs, setRuns] = useState<RunSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const hasActiveRuns = runs?.some((r) => r.status === "queued" || r.status === "running") ?? false;
 
   useEffect(() => {
     if (!token) return;
@@ -46,6 +47,25 @@ export function ResultsPage() {
       cancelled = true;
     };
   }, [token]);
+
+  // SSE is the fast path, but a worker or Redis restart can lose a terminal
+  // event. Reconcile active rows with PostgreSQL until they become terminal.
+  useEffect(() => {
+    if (!token || !hasActiveRuns) return;
+    let cancelled = false;
+    const refresh = () =>
+      runsApi
+        .list(token)
+        .then((data) => {
+          if (!cancelled) setRuns(data);
+        })
+        .catch(() => {});
+    const interval = setInterval(refresh, 4000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [token, hasActiveRuns]);
 
   // Live-update rows still in flight; terminal rows need no subscription.
   useEffect(() => {
