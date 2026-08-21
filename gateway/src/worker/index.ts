@@ -5,6 +5,7 @@ import { processRun } from "./run.processor";
 import { runRepository } from "../repositories/run.repository";
 import { pool } from "../infra/db/pool";
 import { logger } from "../infra/logger";
+import { publishRunEvent } from "../infra/run-events";
 
 async function main() {
   await pool.query("SELECT 1");
@@ -42,6 +43,8 @@ async function main() {
       await runRepository
         .setError(job.data.nodeRunId, err.message)
         .catch((dbErr) => logger.error({ dbErr }, "could not persist run failure"));
+      await publishRunEvent(job.data.nodeRunId, { type: "failed", error: err.message })
+        .catch((publishErr) => logger.error({ publishErr }, "could not publish run failure"));
     }
   });
 
