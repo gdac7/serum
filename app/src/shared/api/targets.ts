@@ -2,6 +2,7 @@ import { apiRequest } from "./client";
 import type { TargetKind } from "../types/run";
 
 export type TargetStatus = "queued" | "loading" | "loaded" | "failed";
+export type TargetBusyReason = "active_run" | "gpu_busy";
 
 export interface TargetSummary {
   target_id: string;
@@ -14,6 +15,7 @@ export interface TargetSummary {
   status: TargetStatus;
   error: string | null;
   in_use: boolean;
+  busy_reason: TargetBusyReason | null;
   created_at: string;
   updated_at: string;
 }

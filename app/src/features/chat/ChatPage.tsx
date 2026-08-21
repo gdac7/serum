@@ -80,6 +80,7 @@ export function ChatPage() {
   );
   const activeMessages = activeId ? messagesByTarget[activeId] ?? [] : [];
   const chatBlocked = activeTarget?.in_use ?? false;
+  const gpuBusy = activeTarget?.busy_reason === "gpu_busy";
 
   function selectTarget(id: string) {
     abortRef.current?.abort();
@@ -223,14 +224,21 @@ export function ChatPage() {
               >
                 <div className="list-item-title">{t.model_name}</div>
                 <div className="list-item-subtitle" title={t.error ?? undefined}>
-                  {t.kind} · {t.in_use ? "in a test" : t.status}
+                  {t.kind} ·{" "}
+                  {t.busy_reason === "gpu_busy" ? "GPU busy" : t.in_use ? "in a test" : t.status}
                 </div>
               </button>
               <button
                 type="button"
                 className="btn-ghost"
                 aria-label={`Delete ${t.model_name}`}
-                title={t.in_use ? "In use by an active run" : "Delete target"}
+                title={
+                  t.busy_reason === "gpu_busy"
+                    ? "GPU is busy with another run"
+                    : t.in_use
+                      ? "In use by an active run"
+                      : "Delete target"
+                }
                 disabled={t.in_use || deletingId === t.target_id}
                 onClick={(e) => deleteTarget(e, t)}
                 style={{ flexShrink: 0, opacity: t.in_use ? 0.35 : undefined }}
@@ -294,8 +302,9 @@ export function ChatPage() {
           ))}
           {chatBlocked && (
             <div className="form-error">
-              {activeTarget?.model_name} is running a security test right now. Chat is paused until
-              the run finishes — it frees up automatically.
+              {gpuBusy
+                ? `Another security test is using the GPU. ${activeTarget?.model_name} chat will be available when it finishes.`
+                : `${activeTarget?.model_name} is running a security test right now. Chat is paused until the run finishes — it frees up automatically.`}
             </div>
           )}
           {activeId && !chatBlocked && activeMessages.length === 0 && (
@@ -319,7 +328,13 @@ export function ChatPage() {
             className="input"
             rows={2}
             style={{ flex: 1, resize: "none" }}
-            placeholder={chatBlocked ? "Chat paused — target is running a test…" : "Message the model…"}
+            placeholder={
+              chatBlocked
+                ? gpuBusy
+                  ? "Chat paused — GPU is in use…"
+                  : "Chat paused — target is running a test…"
+                : "Message the model…"
+            }
             value={draft}
             disabled={!activeId || sending || chatBlocked}
             onChange={(e) => setDraft(e.target.value)}
