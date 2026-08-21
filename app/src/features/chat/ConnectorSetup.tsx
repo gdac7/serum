@@ -69,10 +69,19 @@ export function ConnectorSetup({ targetId, onDone }: { targetId: string; onDone:
       <div className="dialog-title">Connect your model</div>
       <div className="dialog-body" style={{ display: "grid", gap: "var(--space-3)" }}>
         <p style={{ margin: 0, fontSize: 13 }}>
-          Download <code>redteam-connect.py</code> and run it on any machine that can reach your
-          model — its own server, or anything else on the same network. It only makes outgoing
-          requests, so no firewall change or open port is needed.
+          Run <code>redteam-connect.py</code> on any machine that can reach your model — its own
+          server, or anything else on the same network. It only makes outgoing requests, so no
+          firewall change or open port is needed, and it needs Python 3 and nothing else.
         </p>
+
+        <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+          <a className="btn btn-secondary" href="/connector/redteam-connect.py" download>
+            Download the script
+          </a>
+          <a className="btn btn-secondary" href="/connector/README.md" download>
+            Setup guide
+          </a>
+        </div>
 
         {error && <div className="form-error">{error}</div>}
 

@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
         "/auth": proxy,
         "/runs": proxy,
         "/targets": proxy,
+        "/connector": proxy,
         "/me": proxy,
         "/health": proxy,
       },
