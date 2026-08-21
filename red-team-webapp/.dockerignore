@@ -1,0 +1,8 @@
+# The gateway image is built from this directory so that connector/ is in the
+# build context; everything else here is not part of it.
+app
+frontend
+**/node_modules
+**/.env
+**/.git
+gateway/test

@@ -59,7 +59,11 @@ services:
         condition: service_healthy
 
   gateway:
-    build: ./red-team-webapp/gateway
+    # Context is the repo, not gateway/: the gateway serves the connector script
+    # to users, so connector/ has to be inside the build context.
+    build: &gateway-build
+      context: ./red-team-webapp
+      dockerfile: gateway/Dockerfile
     restart: unless-stopped
     # Loopback only: ngrok runs on the host, not on this network, so it needs a
     # published port -- but the tunnel stays the sole public path in.
@@ -91,7 +95,7 @@ services:
         condition: service_healthy
 
   worker:
-    build: ./red-team-webapp/gateway
+    build: *gateway-build
     # Not `npm run worker`: that is `tsx watch`, whose supervisor outlives a
     # crashed child, so the container stays Up with nothing consuming the queue.
     command: npm run worker:start
