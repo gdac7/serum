@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { authApi, type AuthUser } from "../api/auth";
+import { ApiError } from "../api/client";
 
 interface AuthState {
   token: string | null;
@@ -42,8 +43,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((res) => {
         if (!cancelled) setUser(res.user);
       })
-      .catch(() => {
-        if (!cancelled) {
+      .catch((err) => {
+        if (cancelled) return;
+        // Only a rejected token means the session is over. A network blip, a
+        // rate limit or a 5xx says nothing about the token, and discarding it
+        // there logs the user out for reasons that have nothing to do with
+        // them -- reloading fast enough to abort this request used to be
+        // enough to do it.
+        if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
           setToken(null);
           localStorage.removeItem(STORAGE_KEY);
         }
