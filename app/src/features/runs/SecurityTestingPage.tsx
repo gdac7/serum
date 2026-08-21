@@ -67,7 +67,9 @@ export function SecurityTestingPage() {
   const [targets, setTargets] = useState<TargetSummary[]>([]);
   const [selectedTargetId, setSelectedTargetId] = useState(NEW_TARGET);
   const [showFormatHelp, setShowFormatHelp] = useState(false);
-  const [showEndpointHelp, setShowEndpointHelp] = useState(false);
+  // Open by default: it is the one thing that decides whether the user's API
+  // works at all, so hiding it behind a click is how people miss it.
+  const [showEndpointHelp, setShowEndpointHelp] = useState(true);
   const [datasetSource, setDatasetSource] = useState<"custom" | "standard">("custom");
   const [standardPercent, setStandardPercent] = useState(30);
   const [probe, setProbe] = useState<ProbeResult | null>(null);

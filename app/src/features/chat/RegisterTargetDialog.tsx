@@ -21,7 +21,9 @@ export function RegisterTargetDialog({
   const [apiKey, setApiKey] = useState("");
   const [promptField, setPromptField] = useState("");
   const [responseField, setResponseField] = useState("");
-  const [showContract, setShowContract] = useState(false);
+  // Open by default: it is the one thing that decides whether the user's API
+  // works at all, so hiding it behind a click is how people miss it.
+  const [showContract, setShowContract] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [probe, setProbe] = useState<ProbeResult | null>(null);
