@@ -9,12 +9,14 @@ import { ConnectorSetup } from "./ConnectorSetup";
 export function RegisterTargetDialog({
   onClose,
   onRegistered,
+  initialKind = "local",
 }: {
   onClose: () => void;
   onRegistered: (targetId: string) => void;
+  initialKind?: TargetKind;
 }) {
   const { token } = useAuth();
-  const [kind, setKind] = useState<TargetKind>("local");
+  const [kind, setKind] = useState<TargetKind>(initialKind);
   const [modelName, setModelName] = useState("");
   const [load4Bits, setLoad4Bits] = useState(false);
   const [endpointUrl, setEndpointUrl] = useState("");

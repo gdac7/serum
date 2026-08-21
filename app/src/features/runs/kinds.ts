@@ -32,9 +32,9 @@ export const KIND_DEFS: KindDef[] = [
   },
 ];
 
-// Not offered in the picker: a connector target cannot be created from this
-// form, because issuing its token is a separate step. It is reached only by
-// selecting a connector target that already exists.
+// Offered in the picker alongside KIND_DEFS, but kept separate: it is the one
+// kind the run form cannot create inline, since issuing its token is its own
+// step -- the form opens the register dialog for that instead.
 export const CONNECTOR_KIND: KindDef = {
   id: "connector",
   name: "Model on your machine",

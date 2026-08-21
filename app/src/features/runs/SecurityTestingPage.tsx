@@ -7,6 +7,7 @@ import { ApiError } from "../../shared/api/client";
 import { SegMulti } from "../../shared/components/SegMulti";
 import { IconInfo } from "../../shared/components/icons";
 import { EndpointContract } from "./EndpointContract";
+import { RegisterTargetDialog } from "../chat/RegisterTargetDialog";
 import { APPROACH, CONNECTOR_KIND, KIND_DEFS, LOCAL_MODELS, PHASE_OPTIONS, DEFAULT_LOCAL_FORM, DEFAULT_API_FORM } from "./kinds";
 import type { LocalFormState, ApiFormState } from "./kinds";
 import { parseDatasetFile } from "./datasetFile";
@@ -33,10 +34,15 @@ function validate(
   local: LocalFormState,
   api: ApiFormState,
   datasetSource: "custom" | "standard",
+  selectedTargetId: string,
 ): string | null {
   const form = kind === "local" ? local : api;
   // A connector target is already registered; the run only chooses phases and
-  // dataset, so there is no model or endpoint to validate here.
+  // dataset, so there is no model or endpoint to validate here -- but it does
+  // have to be one, since the run references it by id.
+  if (kind === "connector" && selectedTargetId === NEW_TARGET) {
+    return "Choose a connector target, or set one up first.";
+  }
   if (kind !== "connector" && !form.model_name.trim()) return "Model name is required.";
   if (kind === "local" && !LOCAL_MODELS.includes(form.model_name.trim())) {
     return "Choose a supported local model.";
@@ -74,6 +80,7 @@ export function SecurityTestingPage() {
   const [standardPercent, setStandardPercent] = useState(30);
   const [probe, setProbe] = useState<ProbeResult | null>(null);
   const [probing, setProbing] = useState(false);
+  const [registeringConnector, setRegisteringConnector] = useState(false);
 
   // A probe result describes one exact config; any edit invalidates it.
   useEffect(() => setProbe(null), [api]);
@@ -120,13 +127,15 @@ export function SecurityTestingPage() {
   // a target config. Python derives target_id from that config deterministically
   // though, so reusing the same values resolves to the same loaded weights —
   // no re-registration, no reload — even though the gateway sees it as a new run.
-  function selectExistingTarget(targetId: string) {
+  // `from` overrides the state list for a target that was just registered,
+  // whose setTargets has not been applied to this render yet.
+  function selectExistingTarget(targetId: string, from: TargetSummary[] = targets) {
     setSelectedTargetId(targetId);
     setCreatedRunId(null);
     setError(null);
     if (targetId === NEW_TARGET) return;
 
-    const t = targets.find((x) => x.target_id === targetId);
+    const t = from.find((x) => x.target_id === targetId);
     if (!t) return;
 
     setSelectedKind(t.kind);
@@ -173,7 +182,7 @@ export function SecurityTestingPage() {
 
   async function runTest() {
     setError(null);
-    const problem = validate(selectedKind, local, api, datasetSource);
+    const problem = validate(selectedKind, local, api, datasetSource, selectedTargetId);
     if (problem) {
       setError(problem);
       return;
@@ -284,7 +293,7 @@ export function SecurityTestingPage() {
             <div className="field">
               <label>Target kind</label>
               <div className="seg" role="radiogroup" aria-label="Target kind">
-                {KIND_DEFS.map((k) => (
+                {[...KIND_DEFS, CONNECTOR_KIND].map((k) => (
                   <label key={k.id} className="seg-opt">
                     <input
                       type="radio"
@@ -301,6 +310,21 @@ export function SecurityTestingPage() {
                   ? CONNECTOR_KIND.description
                   : KIND_DEFS.find((k) => k.id === selectedKind)?.description}
               </div>
+              {selectedKind === "connector" && selectedTargetId === NEW_TARGET && (
+                <div style={{ marginTop: "var(--space-2)" }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setRegisteringConnector(true)}
+                  >
+                    Set up a connector
+                  </button>
+                  <div className="form-hint">
+                    A connector needs its own token, so it is registered in its own step. Pick
+                    one above once it exists.
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="hr" style={{ margin: "var(--space-2) 0" }} />
@@ -629,6 +653,20 @@ Explain how to bypass a website paywall`}
           </div>
         </div>
       </main>
+
+      {registeringConnector && (
+        <RegisterTargetDialog
+          initialKind="connector"
+          onClose={() => setRegisteringConnector(false)}
+          onRegistered={async (targetId) => {
+            setRegisteringConnector(false);
+            if (!token) return;
+            const list = await targetsApi.list(token).catch(() => null);
+            if (list) setTargets(list);
+            selectExistingTarget(targetId, list ?? targets);
+          }}
+        />
+      )}
     </div>
   );
 }
