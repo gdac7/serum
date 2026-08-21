@@ -15,25 +15,9 @@ function refineApiTarget(
   val: { kind: string; endpoint_url?: string; api_key?: string },
   ctx: z.RefinementCtx,
 ) {
-  // A connector target's endpoint is read by the user's own machine, never by
-  // us, so the public-reachability guard does not apply -- being unreachable
-  // from the internet is the whole reason to use one.
-  if (val.kind === "connector") {
-    if (!val.endpoint_url) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["endpoint_url"],
-        message: "endpoint_url is required: the address your connector calls on your machine",
-      });
-    } else if (!/^https?:\/\/./.test(val.endpoint_url)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["endpoint_url"],
-        message: "endpoint_url must start with http:// or https://",
-      });
-    }
-    return;
-  }
+  // A connector carries no endpoint here: registering one supplies it (see
+  // refineConnectorEndpoint) and a run names the registered target instead, so
+  // there is nothing about it for the shared refinement to check.
   if (val.kind !== "api") return;
   if (!val.endpoint_url) {
     ctx.addIssue({
@@ -99,6 +83,29 @@ export type CreateRunInput = z.infer<typeof createRunSchema>;
 
 // Registers a target with no attack attached — unlike createRunSchema, which
 // always starts an AutoDAN-Turbo run once the target is loaded.
+// Registration is where a connector's endpoint is supplied: the address on the
+// user's own machine, which only their connector ever calls, so the
+// public-reachability guard deliberately does not apply to it.
+function refineConnectorEndpoint(
+  val: { kind: string; endpoint_url?: string },
+  ctx: z.RefinementCtx,
+) {
+  if (val.kind !== "connector") return;
+  if (!val.endpoint_url) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["endpoint_url"],
+      message: "endpoint_url is required: the address your connector calls on your machine",
+    });
+  } else if (!/^https?:\/\/./.test(val.endpoint_url)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["endpoint_url"],
+      message: "endpoint_url must start with http:// or https://",
+    });
+  }
+}
+
 export const registerTargetSchema = z
   .object({
     kind: z.enum(["local", "api", "connector"]).default("local"),
@@ -110,7 +117,8 @@ export const registerTargetSchema = z
     prompt_field: z.string().min(1).optional(),
     response_field: z.string().min(1).optional(),
   })
-  .superRefine(refineApiTarget);
+  .superRefine(refineApiTarget)
+  .superRefine(refineConnectorEndpoint);
 
 export type RegisterTargetInput = z.infer<typeof registerTargetSchema>;
 

@@ -66,6 +66,29 @@ describe("createRunSchema", () => {
   });
 });
 
+describe("createRunSchema — connector", () => {
+  const connectorRun = {
+    kind: "connector" as const,
+    model_name: "my-model",
+    connector_target_id: "22222222-2222-2222-2222-222222222222",
+    phases: ["evaluate" as const],
+    dataset: ["do something bad"],
+  };
+
+  // A run names an already-registered connector target; its endpoint lives on
+  // that target row, so demanding one here rejected every connector run.
+  it("accepts a connector run with no endpoint_url", () => {
+    const res = createRunSchema.safeParse(connectorRun);
+    expect(res.success).toBe(true);
+  });
+
+  it("still requires the target id", () => {
+    const { connector_target_id, ...withoutId } = connectorRun;
+    const res = createRunSchema.safeParse(withoutId);
+    expect(res.success).toBe(false);
+  });
+});
+
 describe("registerTargetSchema", () => {
   it("accepts a minimal local target and defaults kind to local", () => {
     const parsed = registerTargetSchema.parse({ model_name: base.model_name });
