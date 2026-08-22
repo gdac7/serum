@@ -6,6 +6,41 @@ import type { TargetKind } from "../../shared/types/run";
 import { EndpointContract } from "../runs/EndpointContract";
 import { ConnectorSetup } from "./ConnectorSetup";
 
+const CONNECTOR_API_EXAMPLE = `import os
+
+import uvicorn
+from fastapi import FastAPI
+from pydantic import BaseModel
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+MODEL = os.environ.get("MODEL", "Qwen/Qwen2.5-1.5B-Instruct")
+PORT = int(os.environ.get("PORT", "8000"))
+
+tokenizer = AutoTokenizer.from_pretrained(MODEL)
+model = AutoModelForCausalLM.from_pretrained(MODEL, device_map="auto")
+model.eval()
+
+app = FastAPI()
+
+
+class Prompt(BaseModel):
+    input_text: str
+
+
+@app.get("/health")
+def health():
+    return {"ok": True, "model": MODEL}
+
+
+@app.post("/generate")
+def generate(prompt: Prompt):
+    # Your prompt generation logic
+    return {"output": "your model response"}
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=PORT)`;
+
 export function RegisterTargetDialog({
   onClose,
   onRegistered,
@@ -26,6 +61,7 @@ export function RegisterTargetDialog({
   // Open by default: it is the one thing that decides whether the user's API
   // works at all, so hiding it behind a click is how people miss it.
   const [showContract, setShowContract] = useState(true);
+  const [showConnectorGuide, setShowConnectorGuide] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [probe, setProbe] = useState<ProbeResult | null>(null);
@@ -102,7 +138,7 @@ export function RegisterTargetDialog({
   return (
     <div className="dialog-backdrop" onClick={onClose}>
       <div
-        className="dialog"
+        className={`dialog${connectorTargetId || showConnectorGuide ? " dialog-wide" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="new-target-title"
@@ -190,6 +226,27 @@ export function RegisterTargetDialog({
                   </button>
                 </div>
                 {showContract && <EndpointContract />}
+                {kind === "connector" && (
+                  <div style={{ display: "grid", gap: "var(--space-2)", marginBottom: "var(--space-2)" }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setShowConnectorGuide((v) => !v)}
+                    >
+                      {showConnectorGuide ? "Hide setup guide and example API" : "Setup guide and example API"}
+                    </button>
+                    {showConnectorGuide && (
+                      <div className="form-hint" style={{ display: "grid", gap: "var(--space-2)" }}>
+                        <div>
+                          Your model needs <code>POST /generate</code> to accept <code>input_text</code> and
+                          return <code>output</code>. After registration, download the connector script and run it
+                          on a machine that can reach this URL.
+                        </div>
+                        <pre className="code-block">{CONNECTOR_API_EXAMPLE}</pre>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <input
                   className="input"
                   type="url"

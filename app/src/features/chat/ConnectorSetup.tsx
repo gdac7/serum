@@ -78,9 +78,6 @@ export function ConnectorSetup({ targetId, onDone }: { targetId: string; onDone:
           <a className="btn btn-secondary" href="/connector/redteam-connect.py" download>
             Download the script
           </a>
-          <a className="btn btn-secondary" href="/connector/README.md" download>
-            Setup guide
-          </a>
         </div>
 
         {error && <div className="form-error">{error}</div>}
