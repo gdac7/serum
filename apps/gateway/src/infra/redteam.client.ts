@@ -213,37 +213,37 @@ export const redTeamClient = {
   deleteTarget: (clientId: string, targetId: string) =>
     request<void>("DELETE", `/v1/targets/${targetId}?client_id=${clientId}`),
 
-  startRun: (body: StartRunBody) =>
-    request<RunCreateResponse>("POST", "/v1/autodan/runs", body),
+  startRun: (approach: string, body: StartRunBody) =>
+    request<RunCreateResponse>("POST", `/v1/${approach}/runs`, body),
 
-  getRunStatus: (clientId: string, runId: string) =>
+  getRunStatus: (approach: string, clientId: string, runId: string) =>
     request<RunStatusResponse>(
       "GET",
-      `/v1/autodan/runs/${runId}?client_id=${clientId}`,
+      `/v1/${approach}/runs/${runId}?client_id=${clientId}`,
     ),
 
-  getRunResults: (clientId: string, runId: string) =>
+  getRunResults: (approach: string, clientId: string, runId: string) =>
     request<RunResultsResponse>(
       "GET",
-      `/v1/autodan/runs/${runId}/results?client_id=${clientId}`,
+      `/v1/${approach}/runs/${runId}/results?client_id=${clientId}`,
     ),
 
-  getRunPrompts: (clientId: string, runId: string) =>
+  getRunPrompts: (approach: string, clientId: string, runId: string) =>
     request<RunPromptsResponse>(
       "GET",
-      `/v1/autodan/runs/${runId}/prompts?client_id=${clientId}`,
+      `/v1/${approach}/runs/${runId}/prompts?client_id=${clientId}`,
     ),
 
-  getRunMetrics: (clientId: string, runId: string) =>
+  getRunMetrics: (approach: string, clientId: string, runId: string) =>
     request<RunMetricsResponse>(
       "GET",
-      `/v1/autodan/runs/${runId}/metrics?client_id=${clientId}`,
+      `/v1/${approach}/runs/${runId}/metrics?client_id=${clientId}`,
     ),
 
-  getRunProgress: (clientId: string, runId: string) =>
+  getRunProgress: (approach: string, clientId: string, runId: string) =>
     request<RunProgressResponse>(
       "GET",
-      `/v1/autodan/runs/${runId}/progress?client_id=${clientId}`,
+      `/v1/${approach}/runs/${runId}/progress?client_id=${clientId}`,
     ),
 
   // Returns the raw streaming response so the caller can forward the SSE body

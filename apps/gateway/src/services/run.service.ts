@@ -41,13 +41,13 @@ async function loadRun(userId: string, id: string): Promise<RunRow> {
 // nothing to fetch, and any RedTeamServiceError should surface as its own status.
 async function fromPython<T>(
   run: RunRow,
-  call: (clientId: string, pythonRunId: string) => Promise<T>,
+  call: (approach: string, clientId: string, pythonRunId: string) => Promise<T>,
 ): Promise<T> {
   if (!run.python_run_id) {
     throw new HttpError(409, "run not started");
   }
   try {
-    return await call(run.user_id, run.python_run_id);
+    return await call(run.approach, run.user_id, run.python_run_id);
   } catch (err) {
     if (err instanceof RedTeamServiceError) {
       throw new HttpError(err.status, err.body);
@@ -105,29 +105,29 @@ export const runService = {
 
   async getResults(userId: string, id: string) {
     const run = await loadRun(userId, id);
-    return fromPython(run, (clientId, pythonRunId) =>
-      redTeamClient.getRunResults(clientId, pythonRunId),
+    return fromPython(run, (approach, clientId, pythonRunId) =>
+      redTeamClient.getRunResults(approach, clientId, pythonRunId),
     );
   },
 
   async getPrompts(userId: string, id: string) {
     const run = await loadRun(userId, id);
-    return fromPython(run, (clientId, pythonRunId) =>
-      redTeamClient.getRunPrompts(clientId, pythonRunId),
+    return fromPython(run, (approach, clientId, pythonRunId) =>
+      redTeamClient.getRunPrompts(approach, clientId, pythonRunId),
     );
   },
 
   async getMetrics(userId: string, id: string) {
     const run = await loadRun(userId, id);
-    return fromPython(run, (clientId, pythonRunId) =>
-      redTeamClient.getRunMetrics(clientId, pythonRunId),
+    return fromPython(run, (approach, clientId, pythonRunId) =>
+      redTeamClient.getRunMetrics(approach, clientId, pythonRunId),
     );
   },
 
   async getProgress(userId: string, id: string) {
     const run = await loadRun(userId, id);
-    return fromPython(run, (clientId, pythonRunId) =>
-      redTeamClient.getRunProgress(clientId, pythonRunId),
+    return fromPython(run, (approach, clientId, pythonRunId) =>
+      redTeamClient.getRunProgress(approach, clientId, pythonRunId),
     );
   },
 };

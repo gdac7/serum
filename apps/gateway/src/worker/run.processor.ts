@@ -26,6 +26,7 @@ async function waitForTarget(clientId: string, targetId: string): Promise<void> 
 }
 
 async function pollToTerminal(
+  approach: string,
   clientId: string,
   nodeRunId: string,
   pythonRunId: string,
@@ -36,7 +37,7 @@ async function pollToTerminal(
   let lastDiscovered: number | null = null;
   let scoredRequests = 0;
   for (;;) {
-    const run = await redTeamClient.getRunStatus(clientId, pythonRunId);
+    const run = await redTeamClient.getRunStatus(approach, clientId, pythonRunId);
     const coarse = toCoarseStatus(run.status);
     if (coarse !== lastCoarse) {
       await runRepository.setStatus(nodeRunId, coarse);
@@ -53,7 +54,7 @@ async function pollToTerminal(
     }
 
     try {
-      const progress = await redTeamClient.getRunProgress(clientId, pythonRunId);
+      const progress = await redTeamClient.getRunProgress(approach, clientId, pythonRunId);
       if (progress.discovered_this_run !== lastDiscovered) {
         lastDiscovered = progress.discovered_this_run;
         await publishRunEvent(nodeRunId, {
@@ -132,7 +133,7 @@ export async function processRun(job: Job<RunJobData>): Promise<void> {
     await waitForTarget(clientId, target.target_id);
 
     try {
-      const started = await redTeamClient.startRun({
+      const started = await redTeamClient.startRun(run.approach, {
         client_id: clientId,
         target_id: target.target_id,
         phases: run.phases,
@@ -156,5 +157,5 @@ export async function processRun(job: Job<RunJobData>): Promise<void> {
   }
 
   log.info({ pythonRunId }, "polling run to completion");
-  await pollToTerminal(clientId, nodeRunId, pythonRunId, log);
+  await pollToTerminal(run.approach, clientId, nodeRunId, pythonRunId, log);
 }
