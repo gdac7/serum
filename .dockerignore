@@ -1,0 +1,10 @@
+# The gateway image is built from this directory so that apps/connector/ is in
+# the build context; everything else here is not part of it.
+apps/service
+apps/webapp/src
+apps/webapp/index.html
+apps/gateway/test
+**/node_modules
+**/dist
+**/.env
+**/.git

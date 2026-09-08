@@ -43,7 +43,7 @@ services:
       retries: 10
 
   redteam:
-    build: ./python-redteam-service
+    build: ./apps/service
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://postgres:${RT_PG_PASSWORD}@rt-pg:5432/postgres
@@ -67,7 +67,7 @@ services:
     # to users, so connector/ has to be inside the build context.
     build: &gateway-build
       context: .
-      dockerfile: gateway/Dockerfile
+      dockerfile: apps/gateway/Dockerfile
     restart: unless-stopped
     # Loopback only: ngrok runs on the host, not on this network, so it needs a
     # published port -- but the tunnel stays the sole public path in.
@@ -102,7 +102,7 @@ services:
     build: *gateway-build
     # Not `npm run worker`: that is `tsx watch`, whose supervisor outlives a
     # crashed child, so the container stays Up with nothing consuming the queue.
-    command: npm run worker:start
+    command: npm run worker:start -w apps/gateway
     restart: unless-stopped
     environment: *gateway-env
     depends_on:
