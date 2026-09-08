@@ -214,36 +214,36 @@ export const redTeamClient = {
     request<void>("DELETE", `/v1/targets/${targetId}?client_id=${clientId}`),
 
   startRun: (body: StartRunBody) =>
-    request<RunCreateResponse>("POST", "/v1/runs", body),
+    request<RunCreateResponse>("POST", "/v1/autodan/runs", body),
 
   getRunStatus: (clientId: string, runId: string) =>
     request<RunStatusResponse>(
       "GET",
-      `/v1/runs/${runId}?client_id=${clientId}`,
+      `/v1/autodan/runs/${runId}?client_id=${clientId}`,
     ),
 
   getRunResults: (clientId: string, runId: string) =>
     request<RunResultsResponse>(
       "GET",
-      `/v1/runs/${runId}/results?client_id=${clientId}`,
+      `/v1/autodan/runs/${runId}/results?client_id=${clientId}`,
     ),
 
   getRunPrompts: (clientId: string, runId: string) =>
     request<RunPromptsResponse>(
       "GET",
-      `/v1/runs/${runId}/prompts?client_id=${clientId}`,
+      `/v1/autodan/runs/${runId}/prompts?client_id=${clientId}`,
     ),
 
   getRunMetrics: (clientId: string, runId: string) =>
     request<RunMetricsResponse>(
       "GET",
-      `/v1/runs/${runId}/metrics?client_id=${clientId}`,
+      `/v1/autodan/runs/${runId}/metrics?client_id=${clientId}`,
     ),
 
   getRunProgress: (clientId: string, runId: string) =>
     request<RunProgressResponse>(
       "GET",
-      `/v1/runs/${runId}/progress?client_id=${clientId}`,
+      `/v1/autodan/runs/${runId}/progress?client_id=${clientId}`,
     ),
 
   // Returns the raw streaming response so the caller can forward the SSE body

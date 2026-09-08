@@ -87,3 +87,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS connectors_token_hash_idx ON connectors (token
 -- Rotation revokes rather than deletes, so only one unrevoked row per target.
 CREATE UNIQUE INDEX IF NOT EXISTS connectors_active_target_idx
     ON connectors (target_id) WHERE revoked_at IS NULL;
+
+-- Which red-team technique a run used; see gateway src/approaches/registry.ts.
+-- Existing rows all predate any second approach, so 'autodan' is correct for
+-- them. A future approach's own parameters go in a `config jsonb` column added
+-- alongside; the AutoDAN columns above stay as they are.
+ALTER TABLE runs ADD COLUMN IF NOT EXISTS approach text NOT NULL DEFAULT 'autodan';

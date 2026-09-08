@@ -3,6 +3,8 @@ import { pool } from "../infra/db/pool";
 export interface RunRow {
   id: string;
   user_id: string;
+  /** Which red-team technique this run used; see src/approaches/registry.ts. */
+  approach: string;
   python_run_id: string | null;
   target_id: string | null;
   status: string;
@@ -28,6 +30,7 @@ export interface RunRow {
 
 export interface NewRun {
   userId: string;
+  approach: string;
   modelName: string;
   phases: string[];
   dataset: string[];
@@ -47,13 +50,14 @@ export const runRepository = {
   async create(run: NewRun): Promise<RunRow> {
     const { rows } = await pool.query<RunRow>(
       `INSERT INTO runs
-         (user_id, model_name, phases, dataset, fresh_library, load_4_bits,
+         (user_id, approach, model_name, phases, dataset, fresh_library, load_4_bits,
           target_kind, connector_target_id, endpoint_url, encrypted_api_key,
           prompt_field, response_field, standard_dataset, standard_dataset_percent)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
        RETURNING *`,
       [
         run.userId,
+        run.approach,
         run.modelName,
         run.phases,
         run.dataset,

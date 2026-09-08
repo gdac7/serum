@@ -4,6 +4,8 @@ import { logger } from "./infra/logger";
 import { healthRouter } from "./routes/health.routes";
 import { authRouter } from "./routes/auth.routes";
 import { runsRouter } from "./routes/runs.routes";
+import { approachesRouter } from "./routes/approaches.routes";
+import { APPROACHES } from "./approaches/registry";
 import { targetsRouter } from "./routes/targets.routes";
 import { connectRouter } from "./routes/connect.routes";
 import { connectorAssetsRouter } from "./routes/connector.routes";
@@ -21,8 +23,14 @@ export function createApp() {
   app.use(connectorAssetsRouter);
   app.use(healthRouter);
   app.use(authRouter);
+  app.use(approachesRouter);
   app.use(runsRouter);
   app.use(targetsRouter);
+  // Each approach owns everything under its own id, so adding one is a
+  // registry entry rather than an edit here.
+  for (const approach of APPROACHES) {
+    app.use(`/${approach.id}`, approach.router);
+  }
   app.use(errorHandler);
   return app;
 }

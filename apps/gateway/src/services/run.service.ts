@@ -1,5 +1,5 @@
 import { HttpError } from "../domain/errors";
-import type { CreateRunInput } from "../domain/dto";
+import type { CreateRunInput } from "../approaches/autodan/dto";
 import { runRepository, RunRow } from "../repositories/run.repository";
 import { runsQueue } from "../infra/queue";
 import { redTeamClient, RedTeamServiceError } from "../infra/redteam.client";
@@ -9,6 +9,8 @@ import { targetRepository } from "../repositories/target.repository";
 function shapeRun(run: RunRow) {
   return {
     node_run_id: run.id,
+    // Lets the cross-approach run list link each row into the right views.
+    approach: run.approach,
     status: run.status,
     model_name: run.model_name,
     phases: run.phases,
@@ -55,7 +57,7 @@ async function fromPython<T>(
 }
 
 export const runService = {
-  async createRun(userId: string, input: CreateRunInput) {
+  async createRun(userId: string, approach: string, input: CreateRunInput) {
     // Fail here rather than in the worker: a run whose connector target is not
     // the caller's would otherwise queue, start, and only then 404 out of view.
     if (input.kind === "connector") {
@@ -67,6 +69,7 @@ export const runService = {
 
     const run = await runRepository.create({
       userId,
+      approach,
       modelName: input.model_name,
       phases: input.phases,
       dataset: input.dataset,
