@@ -2,7 +2,7 @@
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from .data_structures import AttackLog, JailbreakStrategy
-from ..utils.dev import *
+from src.utils.dev import *
 import json
 
 @dataclass

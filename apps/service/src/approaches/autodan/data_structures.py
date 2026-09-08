@@ -7,7 +7,7 @@ from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 import faiss
 
-from ..utils.dev import DEBUGGING_MODE
+from src.utils.dev import DEBUGGING_MODE
 
 @dataclass
 class AttackLog:

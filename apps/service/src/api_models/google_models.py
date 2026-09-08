@@ -1,4 +1,4 @@
-from src.core.apimodels_interface import ModelInterfaceAPI
+from src.interfaces.apimodels_interface import ModelInterfaceAPI
 import google.generativeai as genai
 from typing import Optional
 

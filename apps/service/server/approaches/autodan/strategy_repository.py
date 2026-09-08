@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 from psycopg.rows import dict_row
 
-from src.core.data_structures import JailbreakStrategy, StrategyLibrary
+from src.approaches.autodan.data_structures import JailbreakStrategy, StrategyLibrary
 
 EMBEDDING_DIM = 384
 

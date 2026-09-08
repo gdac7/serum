@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 
 import requests
 
-from src.core.apimodels_interface import ModelInterfaceAPI
+from src.interfaces.apimodels_interface import ModelInterfaceAPI
 from ..utils.dev import *
 
 DEFAULT_PROMPT_FIELD = "input_text"

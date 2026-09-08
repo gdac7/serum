@@ -11,17 +11,17 @@ from .data_structures import (
     EmbeddingManager
 )
 from .attack_generator import AttackGenerator
-from .apimodels_interface import ModelInterfaceAPI
+from src.interfaces.apimodels_interface import ModelInterfaceAPI
 from .strategy_discovery import StrategyDiscoverer, StrategyValidator
-from .local_models_interface import LocalModel
-from ..utils.dev import (
+from src.interfaces.local_models_interface import LocalModel
+from src.utils.dev import (
     debug_strategy_discovery_attempt,
     debug_strategy_discovered,
     debug_strategy_validation,
     debug_no_strategy_discovered
 )
 import random
-from ..utils.dev import DEBUGGING_MODE
+from src.utils.dev import DEBUGGING_MODE
 import json
 from tqdm import tqdm
 import os
@@ -391,7 +391,7 @@ class AutoDANTurbo:
         return response_dict
 
     @staticmethod
-    def load_config(config_path: str = "./configs/base_config.yaml"):
+    def load_config(config_path: str = "./configs/autodan.yaml"):
         try:
             with open(config_path, 'r') as f:
                 config = yaml.safe_load(f)

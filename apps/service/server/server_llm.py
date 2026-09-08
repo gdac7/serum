@@ -2,10 +2,10 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 import uvicorn
 from src.local_models.transformers_models import LocalModelTransformers
-from src.core.auto_dan_turbo import AutoDANTurbo
+from src.approaches.autodan.auto_dan_turbo import AutoDANTurbo
 from src.utils.dev import *
 
-config = AutoDANTurbo.load_config("configs/base_config.yaml")
+config = AutoDANTurbo.load_config("configs/autodan.yaml")
 scorer_name = config["models"]["scorer"]
 print(config)
 app = FastAPI(title="scorer llm")

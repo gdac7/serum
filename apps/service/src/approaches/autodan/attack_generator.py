@@ -3,8 +3,8 @@ from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 from dataclasses import dataclass
 
-from src.core.data_structures import AttackLog, JailbreakStrategy, StrategyLibrary, EmbeddingManager
-from src.core.prompts import PromptManager, PromptTemplate 
+from src.approaches.autodan.data_structures import AttackLog, JailbreakStrategy, StrategyLibrary, EmbeddingManager
+from src.approaches.autodan.prompts import PromptManager, PromptTemplate 
 import re
 from src.utils.dev import DEBUGGING_MODE
 class AttackGenerator:

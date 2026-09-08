@@ -1,7 +1,7 @@
 import gc
 from threading import Thread
 from typing import Iterator
-from src.core.local_models_interface import LocalModel
+from src.interfaces.local_models_interface import LocalModel
 from transformers.pipelines import pipeline
 from transformers import AutoTokenizer, AutoModelForCausalLM, TextIteratorStreamer
 import torch

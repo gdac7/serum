@@ -3,7 +3,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from src.core.auto_dan_turbo import AutoDANTurbo
+from src.approaches.autodan.auto_dan_turbo import AutoDANTurbo
 
 
 def _attack(score=5.0):
