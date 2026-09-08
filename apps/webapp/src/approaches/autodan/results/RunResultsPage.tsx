@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useAuth } from "../../shared/auth/AuthContext";
-import { runsApi } from "../../shared/api/runs";
-import { ApiError } from "../../shared/api/client";
-import { StatusTag } from "../../shared/components/StatusTag";
+import { useAuth } from "../../../shared/auth/AuthContext";
+import { autodanApi } from "../api";
+import { ApiError } from "../../../shared/api/client";
+import { StatusTag } from "../../../shared/components/StatusTag";
 import type {
   RunProgress,
   RunResults,
   RunSummary,
   StrategyProgress,
-} from "../../shared/types/run";
+} from "../types";
 import { RequestScoresTable } from "./RequestScoresTable";
 
 const PHASE_ORDER = ["warmup", "lifelong", "evaluate"];
@@ -40,9 +40,9 @@ export function RunResultsPage() {
     if (!token) return;
     let cancelled = false;
     Promise.all([
-      runsApi.get(token, id),
-      runsApi.results(token, id),
-      runsApi.progress(token, id).catch(() => null),
+      autodanApi.get(token, id),
+      autodanApi.results(token, id),
+      autodanApi.progress(token, id).catch(() => null),
     ])
       .then(([r, res, prog]) => {
         if (cancelled) return;
@@ -133,7 +133,7 @@ export function RunResultsPage() {
         <h1 style={{ marginTop: "var(--space-3)" }}>{run?.model_name ?? "Run results"}</h1>
         {run && (
           <p style={{ marginBottom: "var(--space-6)" }}>
-            <StatusTag status={run.status} metrics={results?.metrics} />
+            <StatusTag status={run.status} attackSuccessRate={results?.metrics?.asr ?? null} />
           </p>
         )}
 
@@ -189,7 +189,7 @@ export function RunResultsPage() {
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={() => navigate(`/results/${id}/transcript`)}
+                  onClick={() => navigate(`/autodan/results/${id}/transcript`)}
                 >
                   Show attack prompts and target responses
                 </button>
@@ -283,7 +283,7 @@ export function RunResultsPage() {
                     <button
                       type="button"
                       className="btn btn-secondary"
-                      onClick={() => navigate(`/results/${id}/strategies`)}
+                      onClick={() => navigate(`/autodan/results/${id}/strategies`)}
                     >
                       Show strategies
                     </button>

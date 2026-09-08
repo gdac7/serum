@@ -1,17 +1,18 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../shared/auth/AuthContext";
-import { runsApi } from "../../shared/api/runs";
+import { autodanApi } from "./api";
 import { targetsApi, type ProbeResult, type TargetSummary } from "../../shared/api/targets";
 import { ApiError } from "../../shared/api/client";
 import { SegMulti } from "../../shared/components/SegMulti";
 import { IconInfo } from "../../shared/components/icons";
-import { EndpointContract } from "./EndpointContract";
-import { RegisterTargetDialog } from "../chat/RegisterTargetDialog";
+import { EndpointContract } from "../../shared/components/EndpointContract";
+import { RegisterTargetDialog } from "../../features/targets/RegisterTargetDialog";
 import { APPROACH, CONNECTOR_KIND, KIND_DEFS, LOCAL_MODELS, PHASE_OPTIONS, DEFAULT_LOCAL_FORM, DEFAULT_API_FORM } from "./kinds";
 import type { LocalFormState, ApiFormState } from "./kinds";
 import { parseDatasetFile } from "./datasetFile";
-import type { CreateRunInput, Phase, TargetKind } from "../../shared/types/run";
+import type { CreateRunInput, Phase } from "./types";
+import type { TargetKind } from "../../shared/types/run";
 
 const NEW_TARGET = "__new__";
 
@@ -62,7 +63,7 @@ function validate(
   return null;
 }
 
-export function SecurityTestingPage() {
+export function ConfigPage() {
   const { token } = useAuth();
   const [selectedKind, setSelectedKind] = useState<TargetKind>("local");
   const [local, setLocal] = useState<LocalFormState>(DEFAULT_LOCAL_FORM);
@@ -232,7 +233,7 @@ export function SecurityTestingPage() {
 
     setSubmitting(true);
     try {
-      const res = await runsApi.create(token, input);
+      const res = await autodanApi.create(token, input);
       setCreatedRunId(res.node_run_id);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "failed to start the run");

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../shared/auth/AuthContext";
-import { runsApi } from "../../shared/api/runs";
-import { ApiError } from "../../shared/api/client";
-import { StatusTag } from "../../shared/components/StatusTag";
-import type { RunSummary } from "../../shared/types/run";
+import { useAuth } from "../../../shared/auth/AuthContext";
+import { autodanApi } from "../api";
+import { ApiError } from "../../../shared/api/client";
+import { StatusTag } from "../../../shared/components/StatusTag";
+import type { RunSummary } from "../types";
 
 export function RunDetailDialog({ runId, onClose }: { runId: string; onClose: () => void }) {
   const { token } = useAuth();
@@ -15,7 +15,7 @@ export function RunDetailDialog({ runId, onClose }: { runId: string; onClose: ()
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
-    runsApi
+    autodanApi
       .get(token, runId)
       .then((r) => {
         if (!cancelled) setRun(r);
@@ -104,7 +104,7 @@ export function RunDetailDialog({ runId, onClose }: { runId: string; onClose: ()
             <button
               type="button"
               className="btn btn-primary"
-              onClick={() => navigate(`/results/${runId}/monitor`)}
+              onClick={() => navigate(`/autodan/results/${runId}/monitor`)}
             >
               Monitor jailbreaking test
             </button>
@@ -113,7 +113,7 @@ export function RunDetailDialog({ runId, onClose }: { runId: string; onClose: ()
             <button
               type="button"
               className="btn btn-primary"
-              onClick={() => navigate(`/results/${runId}`)}
+              onClick={() => navigate(`/autodan/results/${runId}`)}
             >
               See run results
             </button>

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useAuth } from "../../shared/auth/AuthContext";
-import { runsApi } from "../../shared/api/runs";
-import { ApiError } from "../../shared/api/client";
-import type { RunPrompts, RunResults, RunSummary } from "../../shared/types/run";
+import { useAuth } from "../../../shared/auth/AuthContext";
+import { autodanApi } from "../api";
+import { ApiError } from "../../../shared/api/client";
+import type { RunPrompts, RunResults, RunSummary } from "../types";
 
 interface TranscriptRow {
   phase: string;
@@ -91,12 +91,12 @@ export function RunTranscriptPage() {
     if (!token) return;
     let cancelled = false;
     Promise.all([
-      runsApi.get(token, id),
-      runsApi.prompts(token, id).catch((e) => {
+      autodanApi.get(token, id),
+      autodanApi.prompts(token, id).catch((e) => {
         if (!cancelled) setPromptsError(e instanceof ApiError ? `${e.status}: ${e.message}` : String(e));
         return null;
       }),
-      runsApi.results(token, id).catch(() => null),
+      autodanApi.results(token, id).catch(() => null),
     ])
       .then(([r, p, res]) => {
         if (cancelled) return;
@@ -129,7 +129,7 @@ export function RunTranscriptPage() {
   return (
     <main style={{ flex: 1, overflowY: "auto" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
-        <Link to={`/results/${id}`} className="text-muted">
+        <Link to={`/autodan/results/${id}`} className="text-muted">
           ← Back to results
         </Link>
         <div

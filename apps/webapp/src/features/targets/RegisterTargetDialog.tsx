@@ -3,8 +3,8 @@ import { useAuth } from "../../shared/auth/AuthContext";
 import { targetsApi, type ProbeResult, type RegisterTargetInput } from "../../shared/api/targets";
 import { ApiError } from "../../shared/api/client";
 import type { TargetKind } from "../../shared/types/run";
-import { EndpointContract } from "../runs/EndpointContract";
-import { ConnectorSetup } from "./ConnectorSetup";
+import { EndpointContract } from "../../shared/components/EndpointContract";
+import { ConnectorSetup } from "../chat/ConnectorSetup";
 
 const CONNECTOR_API_EXAMPLE = `import os
 

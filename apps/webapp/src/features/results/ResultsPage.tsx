@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../shared/auth/AuthContext";
-import { runsApi, subscribeRunEvents } from "../../shared/api/runs";
+import { runsApi } from "../../shared/api/runs";
 import { ApiError } from "../../shared/api/client";
 import { StatusTag } from "../../shared/components/StatusTag";
-import type { RunSummary } from "../../shared/types/run";
-import { RunDetailDialog } from "./RunDetailDialog";
+import type { RunListItem } from "../../shared/types/run";
+import { findApproach } from "../../approaches/registry";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -18,10 +18,15 @@ function formatDate(iso: string | null): string {
 
 export function ResultsPage() {
   const { token } = useAuth();
-  const [runs, setRuns] = useState<RunSummary[] | null>(null);
+  const [runs, setRuns] = useState<RunListItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const hasActiveRuns = runs?.some((r) => r.status === "queued" || r.status === "running") ?? false;
+  // The detail view belongs to the run's approach, not to this list.
+  const selected = runs?.find((r) => r.node_run_id === selectedId);
+  const selectedRun = selected
+    ? { id: selected.node_run_id, Dialog: findApproach(selected.approach)?.RunDetailDialog }
+    : null;
 
   useEffect(() => {
     if (!token) return;
@@ -68,23 +73,22 @@ export function ResultsPage() {
   }, [token, hasActiveRuns]);
 
   // Live-update rows still in flight; terminal rows need no subscription.
+  // Each row subscribes through its own approach, which is what knows how its
+  // events are streamed -- an approach without one just waits for the poll.
   useEffect(() => {
     if (!token || !runs) return;
     const unsubscribers = runs
       .filter((r) => r.status === "queued" || r.status === "running")
-      .map((r) =>
-        subscribeRunEvents(token, r.node_run_id, (frame) => {
+      .map((r) => findApproach(r.approach)?.subscribeRunEvents?.(token, r.node_run_id, (frame) => {
           const coarse = (frame.coarse as string | undefined) ?? (frame.type as string);
-          if (coarse === "completed" || coarse === "failed" || frame.type === "completed" || frame.type === "failed") {
+          if (coarse === "completed" || coarse === "failed") {
             runsApi
-              .get(token, r.node_run_id)
-              .then((fresh) =>
-                setRuns((prev) => prev?.map((row) => (row.node_run_id === fresh.node_run_id ? fresh : row)) ?? prev),
-              )
+              .list(token)
+              .then((fresh) => setRuns(fresh))
               .catch(() => {});
           }
-        }),
-      );
+        }))
+      .filter((unsub): unsub is () => void => typeof unsub === "function");
     return () => unsubscribers.forEach((unsub) => unsub());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, runs?.map((r) => r.node_run_id + r.status).join(",")]);
@@ -109,7 +113,7 @@ export function ResultsPage() {
               <tr>
                 <th>Target model</th>
                 <th>Kind</th>
-                <th>Phases</th>
+                <th>Approach</th>
                 <th>Status</th>
                 <th>Started</th>
                 <th>Ended</th>
@@ -120,7 +124,9 @@ export function ResultsPage() {
                 <tr key={run.node_run_id} data-clickable onClick={() => setSelectedId(run.node_run_id)}>
                   <td>{run.model_name}</td>
                   <td className="text-muted">{run.target_kind}</td>
-                  <td>{run.phases.join(", ")}</td>
+                  <td className="text-muted">
+                    {findApproach(run.approach)?.name ?? run.approach}
+                  </td>
                   <td>
                     <StatusTag status={run.status} />
                   </td>
@@ -133,7 +139,9 @@ export function ResultsPage() {
         )}
       </div>
 
-      {selectedId && <RunDetailDialog runId={selectedId} onClose={() => setSelectedId(null)} />}
+      {selectedRun?.Dialog && (
+        <selectedRun.Dialog runId={selectedRun.id} onClose={() => setSelectedId(null)} />
+      )}
     </main>
   );
 }

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { RequestScore } from "../../shared/types/run";
+import type { RequestScore } from "../types";
 
 const PAGE_SIZE = 10;
 

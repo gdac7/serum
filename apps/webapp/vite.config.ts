@@ -22,7 +22,10 @@ export default defineConfig(({ mode }) => {
       port: 5174,
       proxy: {
         "/auth": proxy,
+        "/approaches": proxy,
         "/runs": proxy,
+        // One entry per approach prefix the gateway mounts.
+        "/autodan": proxy,
         "/targets": proxy,
         "/connector": proxy,
         "/me": proxy,

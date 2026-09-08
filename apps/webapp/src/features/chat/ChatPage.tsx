@@ -4,7 +4,7 @@ import { targetsApi, type TargetSummary } from "../../shared/api/targets";
 import { streamChat } from "../../shared/api/chat";
 import { ApiError } from "../../shared/api/client";
 import { IconPlus, IconSend, IconTrash } from "../../shared/components/icons";
-import { RegisterTargetDialog } from "./RegisterTargetDialog";
+import { RegisterTargetDialog } from "../targets/RegisterTargetDialog";
 
 interface ChatMessage {
   sender: "You" | "Target" | "System";

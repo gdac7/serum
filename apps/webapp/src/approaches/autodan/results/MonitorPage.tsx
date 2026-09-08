@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useAuth } from "../../shared/auth/AuthContext";
-import { runsApi, subscribeRunEvents } from "../../shared/api/runs";
-import { ApiError } from "../../shared/api/client";
-import { StatusTag } from "../../shared/components/StatusTag";
-import type { RequestScore, RunProgress, RunSummary } from "../../shared/types/run";
+import { useAuth } from "../../../shared/auth/AuthContext";
+import { autodanApi, subscribeRunEvents } from "../api";
+import { ApiError } from "../../../shared/api/client";
+import { StatusTag } from "../../../shared/components/StatusTag";
+import type { RequestScore, RunProgress, RunSummary } from "../types";
 import { RequestScoresTable } from "./RequestScoresTable";
 
 const POLL_MS = 4000;
@@ -52,7 +52,7 @@ export function MonitorPage() {
     let cancelled = false;
 
     const refreshRun = () =>
-      runsApi
+      autodanApi
         .get(token, id)
         .then((r) => {
           if (!cancelled) setRun(r);
@@ -64,7 +64,7 @@ export function MonitorPage() {
         });
 
     const poll = () =>
-      runsApi
+      autodanApi
         .progress(token, id)
         .then((p) => {
           if (!cancelled) setProgress(p);
@@ -91,7 +91,7 @@ export function MonitorPage() {
       const coarse = (frame.coarse as string | undefined) ?? (frame.type as string);
       if (coarse === "completed" || coarse === "failed") {
         refreshRun();
-        if (coarse === "completed") navigate(`/results/${id}`, { replace: true });
+        if (coarse === "completed") navigate(`/autodan/results/${id}`, { replace: true });
       }
     });
 
@@ -126,7 +126,7 @@ export function MonitorPage() {
           <p className="empty-state">
             This run is {run.status}.{" "}
             {run.status === "completed" ? (
-              <Link to={`/results/${id}`}>See results</Link>
+              <Link to={`/autodan/results/${id}`}>See results</Link>
             ) : (
               "Nothing to monitor."
             )}

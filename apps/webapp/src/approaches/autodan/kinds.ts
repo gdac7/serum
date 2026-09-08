@@ -1,7 +1,8 @@
-import type { Phase, TargetKind } from "../../shared/types/run";
+import type { Phase } from "./types";
+import type { TargetKind } from "../../shared/types/run";
 
-// The backend has exactly one red-team method — the design's sidebar lists
-// approaches; this backend has a single one, so it's always selected.
+// How this approach names itself on its own config page. The cross-approach
+// list the picker renders comes from approaches/registry.tsx instead.
 export const APPROACH = {
   name: "AutoDAN-Turbo",
   description:

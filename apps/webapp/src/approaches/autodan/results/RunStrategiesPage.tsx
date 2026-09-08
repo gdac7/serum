@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useAuth } from "../../shared/auth/AuthContext";
-import { runsApi } from "../../shared/api/runs";
-import { ApiError } from "../../shared/api/client";
-import type { RunProgress, RunSummary, StrategyProgress } from "../../shared/types/run";
+import { useAuth } from "../../../shared/auth/AuthContext";
+import { autodanApi } from "../api";
+import { ApiError } from "../../../shared/api/client";
+import type { RunProgress, RunSummary, StrategyProgress } from "../types";
 
 function StrategyCard({ s }: { s: StrategyProgress }) {
   return (
@@ -73,7 +73,7 @@ export function RunStrategiesPage() {
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
-    Promise.all([runsApi.get(token, id), runsApi.progress(token, id)])
+    Promise.all([autodanApi.get(token, id), autodanApi.progress(token, id)])
       .then(([r, p]) => {
         if (cancelled) return;
         setRun(r);
@@ -101,7 +101,7 @@ export function RunStrategiesPage() {
   return (
     <main style={{ flex: 1, overflowY: "auto" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto", padding: "var(--space-8) var(--space-4)" }}>
-        <Link to={`/results/${id}`} className="text-muted">
+        <Link to={`/autodan/results/${id}`} className="text-muted">
           ← Back to results
         </Link>
         <h1 style={{ marginTop: "var(--space-3)" }}>Strategies</h1>
