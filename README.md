@@ -28,7 +28,14 @@ folder rather than an edit to the routers:
 Auth, targets, chat, the connector and health are shared across approaches — a
 target is an input to any approach, not a property of one.
 
-Today the only approach is **`autodan`** (AutoDAN-Turbo).
+Today the only approach is **`autodan`** (AutoDAN-Turbo). `GET /approaches`
+serves the gateway's registry, and `GET /runs` stays outside any prefix as the
+cross-approach run list.
+
+To add one: create the three folders above, register it in each side's
+registry (`approaches/registry.ts` / `.tsx`, and `APPROACH_ROUTERS` in
+`apps/service/server/main.py`), and store its parameters in a `config jsonb`
+column on `runs` -- the AutoDAN columns there stay as they are.
 
 ## Development
 
