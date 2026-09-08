@@ -5,7 +5,6 @@ dist/
 .env
 autodan-venv/
 tracking.txt
-.gitignore
 tests.ipynb
 *venv*/
 notes.txt
